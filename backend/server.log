@@ -1,0 +1,17 @@
+
+> timetable-backend@1.0.0 start
+> node server.js
+
+🚀 Server Information:
+   📡 Server running in development mode
+   🌐 Port: 3001
+   🔗 URL: http://localhost:3001
+   🏥 Health Check: http://localhost:3001/api/health
+✅ MongoDB Connected Successfully!
+📍 Host: cluster0-shard-00-00.ymz2b.mongodb.net
+🗃️  Database: smart_timetable
+🌐 Connection State: Connected
+🔄 MongoDB reconnected
+🔄 MongoDB reconnected
+⚠️  MongoDB disconnected
+🔄 MongoDB reconnected
