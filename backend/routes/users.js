@@ -105,7 +105,7 @@ router.post('/', [
       });
     }
 
-    const { name, email, password, role, department, availability } = req.body;
+    const { name, email, password, role, department, availability, isActive } = req.body;
 
     // Check if user already exists
     const existingUser = await User.findOne({ email });
@@ -127,7 +127,8 @@ router.post('/', [
       passwordHash,
       role,
       department,
-      availability: availability || {}
+      availability: availability || {},
+      isActive: typeof isActive !== 'undefined' ? isActive : true
     });
 
     await user.save();
@@ -141,6 +142,7 @@ router.post('/', [
         email: user.email,
         role: user.role,
         department: user.department,
+        isActive: user.isActive,
         createdAt: user.createdAt
       }
     });
@@ -160,6 +162,7 @@ router.put('/:id', [
   protect,
   body('name', 'Name is required').optional().notEmpty(),
   body('email', 'Please include a valid email').optional().isEmail(),
+  body('password', 'Password must be 6 or more characters').optional().isLength({ min: 6 }),
   body('role', 'Role must be student, faculty, or admin').optional().isIn(['student', 'faculty', 'admin']),
   body('department', 'Department is required').optional().notEmpty()
 ], async (req, res) => {
@@ -189,7 +192,7 @@ router.put('/:id', [
       });
     }
 
-    const { name, email, role, department, availability } = req.body;
+    const { name, email, password, role, department, availability, isActive } = req.body;
 
     // Check if email is being changed and already exists
     if (email && email !== user.email) {
@@ -205,9 +208,14 @@ router.put('/:id', [
     // Update fields
     if (name) user.name = name;
     if (email) user.email = email;
+    if (password) {
+      const salt = await bcrypt.genSalt(10);
+      user.passwordHash = await bcrypt.hash(password, salt);
+    }
     if (role && req.user.role === 'admin') user.role = role; // Only admin can change roles
     if (department) user.department = department;
     if (availability) user.availability = availability;
+    if (typeof isActive !== 'undefined' && req.user.role === 'admin') user.isActive = isActive;
 
     await user.save();
 
@@ -221,6 +229,7 @@ router.put('/:id', [
         role: user.role,
         department: user.department,
         availability: user.availability,
+        isActive: user.isActive,
         createdAt: user.createdAt
       }
     });

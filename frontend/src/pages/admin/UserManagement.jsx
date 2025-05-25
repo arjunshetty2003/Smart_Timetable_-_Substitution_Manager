@@ -30,7 +30,7 @@ const UserManagement = () => {
       setLoading(true);
       const response = await api.get('/users');
       if (response.data.success) {
-        setUsers(response.data.data);
+        setUsers(response.data.users);
       }
     } catch (error) {
       setError('Failed to fetch users');
@@ -45,7 +45,7 @@ const UserManagement = () => {
     try {
       const response = await api.post('/users', formData);
       if (response.data.success) {
-        setUsers([...users, response.data.data]);
+        setUsers([...users, response.data.user]);
         setShowCreateModal(false);
         resetForm();
         alert('User created successfully!');
@@ -64,7 +64,7 @@ const UserManagement = () => {
       const response = await api.put(`/users/${selectedUser._id}`, updateData);
       if (response.data.success) {
         setUsers(users.map(user => 
-          user._id === selectedUser._id ? response.data.data : user
+          user._id === selectedUser._id ? response.data.user : user
         ));
         setShowEditModal(false);
         setSelectedUser(null);
@@ -128,6 +128,23 @@ const UserManagement = () => {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <div className="text-red-600 text-lg font-semibold mb-2">Error</div>
+          <div className="text-gray-600 mb-4">{error}</div>
+          <button 
+            onClick={fetchUsers}
+            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+          >
+            Retry
+          </button>
+        </div>
       </div>
     );
   }
