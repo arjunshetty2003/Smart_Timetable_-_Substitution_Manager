@@ -46,7 +46,7 @@ const DashboardLayout = ({ children }) => {
       case 'student':
         return [
           ...baseItems,
-          { name: 'My Timetable', href: '/student/timetable', icon: BookOpen },
+          { name: 'My Timetable', href: '/schedule', icon: BookOpen },
           { name: 'Special Classes', href: '/student/special-classes', icon: UserCheck },
         ];
       default:

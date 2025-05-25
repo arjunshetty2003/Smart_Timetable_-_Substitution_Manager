@@ -46,7 +46,7 @@ export const authAPI = {
   login: (credentials) => api.post('/auth/login', credentials),
   register: (userData) => api.post('/auth/register', userData),
   getProfile: () => api.get('/auth/me'),
-  updateProfile: (userData) => api.put('/auth/me', userData),
+  updateProfile: (userData) => api.put('/auth/profile', userData),
   changePassword: (passwordData) => api.put('/auth/change-password', passwordData),
   logout: () => api.post('/auth/logout'),
 };
@@ -110,6 +110,18 @@ export const schedulesAPI = {
   update: (id, scheduleData) => api.put(`/schedules/${id}`, scheduleData),
   delete: (id) => api.delete(`/schedules/${id}`),
   requestSubstitution: (id, data) => api.post(`/schedules/${id}/substitute`, data),
+};
+
+// Special Classes API
+export const specialClassesAPI = {
+  getAll: (params) => api.get('/special-classes', { params }),
+  getById: (id) => api.get(`/special-classes/${id}`),
+  create: (specialClassData) => api.post('/special-classes', specialClassData),
+  update: (id, specialClassData) => api.put(`/special-classes/${id}`, specialClassData),
+  delete: (id) => api.delete(`/special-classes/${id}`),
+  register: (id) => api.post(`/special-classes/${id}/register`),
+  unregister: (id) => api.delete(`/special-classes/${id}/register`),
+  getUpcoming: (params) => api.get('/special-classes/upcoming', { params }),
 };
 
 // Health check

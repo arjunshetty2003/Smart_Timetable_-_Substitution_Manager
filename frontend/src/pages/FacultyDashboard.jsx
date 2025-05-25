@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { Calendar, Clock, BookOpen, Users, AlertCircle, CheckCircle, RefreshCw, AlertTriangle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { schedulesAPI } from '../services/api';
@@ -14,10 +15,39 @@ const FacultyDashboard = () => {
       setLoading(true);
       setError(null);
       const response = await schedulesAPI.getFacultyDashboard();
-      setDashboardData(response.data);
+      console.log('Faculty dashboard response:', response.data);
+      
+      // The backend returns data nested under 'data' property
+      if (response.data.success && response.data.data) {
+        setDashboardData(response.data.data);
+      } else {
+        setError('Invalid response format from server.');
+      }
     } catch (err) {
       console.error('Failed to fetch faculty dashboard data:', err);
-      setError('Failed to load dashboard data. Please try again.');
+      if (err.response?.status === 404) {
+        setError('Faculty dashboard endpoint not found. Please check if the backend is running.');
+      } else if (err.response?.status === 401) {
+        setError('Authentication failed. Please login again.');
+      } else if (err.code === 'ECONNREFUSED') {
+        setError('Cannot connect to server. Please ensure the backend is running on port 3001.');
+      } else {
+        setError(err.response?.data?.message || 'Failed to load dashboard data. Please try again.');
+      }
+      
+      // Set fallback data if API fails
+      if (!dashboardData) {
+        setDashboardData({
+          stats: {
+            todayClasses: 0,
+            weekClasses: 0,
+            pendingSubstitutions: 0,
+            nextClass: 'None today'
+          },
+          todayClasses: [],
+          substitutionRequests: []
+        });
+      }
     } finally {
       setLoading(false);
     }
@@ -27,7 +57,7 @@ const FacultyDashboard = () => {
     fetchDashboardData();
   }, []);
 
-  const stats = dashboardData ? [
+  const stats = dashboardData?.stats ? [
     {
       name: 'Today\'s Classes',
       value: dashboardData.stats.todayClasses?.toString() || '0',
@@ -52,7 +82,32 @@ const FacultyDashboard = () => {
       icon: Clock,
       color: 'bg-purple-500',
     },
-  ] : [];
+  ] : [
+    {
+      name: 'Today\'s Classes',
+      value: '0',
+      icon: BookOpen,
+      color: 'bg-blue-500',
+    },
+    {
+      name: 'This Week',
+      value: '0',
+      icon: Calendar,
+      color: 'bg-green-500',
+    },
+    {
+      name: 'Pending Substitutions',
+      value: '0',
+      icon: AlertCircle,
+      color: 'bg-orange-500',
+    },
+    {
+      name: 'Next Class',
+      value: 'None today',
+      icon: Clock,
+      color: 'bg-purple-500',
+    },
+  ];
 
   const formatTime = (startTime, endTime) => {
     if (startTime && endTime) {
@@ -246,22 +301,34 @@ const FacultyDashboard = () => {
       <div className="bg-white rounded-lg shadow-sm border p-6">
         <h3 className="text-lg font-medium text-gray-900 mb-4">Quick Actions</h3>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <button className="btn-primary">
+          <Link 
+            to="/schedule"
+            className="inline-flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+          >
             <Calendar className="h-4 w-4 mr-2" />
             View Full Schedule
-          </button>
-          <button className="btn-secondary">
+          </Link>
+          <Link 
+            to="/faculty/substitutions"
+            className="inline-flex items-center justify-center px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-sm font-medium"
+          >
             <Clock className="h-4 w-4 mr-2" />
             Request Substitution
-          </button>
-          <button className="btn-secondary">
+          </Link>
+          <Link 
+            to="/faculty/availability"
+            className="inline-flex items-center justify-center px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-sm font-medium"
+          >
             <Users className="h-4 w-4 mr-2" />
             Manage Availability
-          </button>
-          <button className="btn-secondary">
+          </Link>
+          <Link 
+            to="/faculty/create-special-class"
+            className="inline-flex items-center justify-center px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-sm font-medium"
+          >
             <BookOpen className="h-4 w-4 mr-2" />
             Create Special Class
-          </button>
+          </Link>
         </div>
       </div>
     </div>

@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { Calendar, Clock, BookOpen, Users } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -142,19 +143,21 @@ const StudentDashboard = () => {
       {/* Quick Actions */}
       <div className="bg-white rounded-lg shadow-sm border p-6">
         <h3 className="text-lg font-medium text-gray-900 mb-4">Quick Actions</h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <button className="btn-primary">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Link 
+            to="/schedule"
+            className="inline-flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+          >
             <Calendar className="h-4 w-4 mr-2" />
             View Full Timetable
-          </button>
-          <button className="btn-secondary">
+          </Link>
+          <Link 
+            to="/student/special-classes"
+            className="inline-flex items-center justify-center px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-sm font-medium"
+          >
             <Users className="h-4 w-4 mr-2" />
             Browse Special Classes
-          </button>
-          <button className="btn-secondary">
-            <BookOpen className="h-4 w-4 mr-2" />
-            Academic Resources
-          </button>
+          </Link>
         </div>
       </div>
     </div>

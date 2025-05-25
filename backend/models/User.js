@@ -38,8 +38,8 @@ const userSchema = new mongoose.Schema({
     trim: true
   },
   availability: {
-    type: [Date],
-    default: []
+    type: mongoose.Schema.Types.Mixed,
+    default: {}
   },
   isActive: {
     type: Boolean,

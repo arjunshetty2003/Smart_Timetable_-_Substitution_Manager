@@ -148,8 +148,7 @@ router.get('/me', protect, async (req, res) => {
 router.put('/profile', protect, [
   body('name').optional().notEmpty().withMessage('Name cannot be empty'),
   body('email').optional().isEmail().withMessage('Please include a valid email'),
-  body('department').optional().notEmpty().withMessage('Department cannot be empty'),
-  body('availability').optional().isArray().withMessage('Availability must be an array')
+  body('department').optional().notEmpty().withMessage('Department cannot be empty')
 ], async (req, res) => {
   try {
     // Check for validation errors

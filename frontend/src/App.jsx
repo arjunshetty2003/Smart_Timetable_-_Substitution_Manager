@@ -17,6 +17,15 @@ import SubstitutionManagement from './pages/admin/SubstitutionManagement';
 import TimetableManagement from './pages/admin/TimetableManagement';
 import SchedulePage from './pages/SchedulePage';
 
+// Faculty pages
+import MyClasses from './pages/faculty/MyClasses';
+import SubstitutionRequests from './pages/faculty/SubstitutionRequests';
+import Availability from './pages/faculty/Availability';
+import CreateSpecialClass from './pages/faculty/CreateSpecialClass';
+
+// Student pages
+import SpecialClasses from './pages/student/SpecialClasses';
+
 // Protected Route Component
 function ProtectedRoute({ children, allowedRoles }) {
   const { isAuthenticated, user, isLoading } = useAuth();
@@ -173,12 +182,58 @@ function App() {
           } 
         />
 
+        {/* Faculty Routes */}
         <Route 
-          path="/faculty/*" 
+          path="/faculty/classes" 
           element={
             <ProtectedRoute allowedRoles={['faculty']}>
               <DashboardLayout>
-                <FacultyDashboard />
+                <MyClasses />
+              </DashboardLayout>
+            </ProtectedRoute>
+          } 
+        />
+
+        <Route 
+          path="/faculty/substitutions" 
+          element={
+            <ProtectedRoute allowedRoles={['faculty']}>
+              <DashboardLayout>
+                <SubstitutionRequests />
+              </DashboardLayout>
+            </ProtectedRoute>
+          } 
+        />
+
+        <Route 
+          path="/faculty/availability" 
+          element={
+            <ProtectedRoute allowedRoles={['faculty']}>
+              <DashboardLayout>
+                <Availability />
+              </DashboardLayout>
+            </ProtectedRoute>
+          } 
+        />
+
+        <Route 
+          path="/faculty/create-special-class" 
+          element={
+            <ProtectedRoute allowedRoles={['faculty']}>
+              <DashboardLayout>
+                <CreateSpecialClass />
+              </DashboardLayout>
+            </ProtectedRoute>
+          } 
+        />
+
+        {/* Student Routes */}
+        <Route 
+          path="/student/special-classes" 
+          element={
+            <ProtectedRoute allowedRoles={['student']}>
+              <DashboardLayout>
+                <SpecialClasses />
               </DashboardLayout>
             </ProtectedRoute>
           } 
