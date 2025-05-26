@@ -1,23 +1,24 @@
 pipeline {
     agent any
 
+    tools {
+        nodejs 'NodeJS 18'  // Must match the name configured in Global Tool Configuration
+    }
+
     environment {
         CI = 'true'
-        PATH = "/usr/local/bin:$PATH"
     }
 
     stages {
         stage('Checkout') {
             steps {
                 echo 'Cloning repository...'
-                git 'https://github.com/arjunshetty2003/Smart_Timetable_-_Substitution_Manager.git'
+                checkout scm
             }
         }
 
         stage('Verify Node Installation') {
             steps {
-                echo 'Checking Node and NPM versions...'
-                sh 'which node'
                 sh 'node -v'
                 sh 'npm -v'
             }
@@ -33,14 +34,14 @@ pipeline {
         stage('Run Tests') {
             steps {
                 echo 'Running tests...'
-                sh 'npm test || echo "⚠️ Tests failed or are not configured."'
+                sh 'npm test || echo "⚠️ Tests failed or not configured."'
             }
         }
 
         stage('Build Project') {
             steps {
                 echo 'Building project...'
-                sh 'npm run build || echo "⚠️ Build script not found."'
+                sh 'npm run build || echo "⚠️ Build step failed or not found."'
             }
         }
     }
