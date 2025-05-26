@@ -47,8 +47,13 @@ const SubstitutionRequests = () => {
     try {
       const response = await usersAPI.getAll();
       if (response.data.success) {
-        const faculty = response.data.users.filter(u => u.role === 'faculty' && u._id !== user._id);
+        // Handle both possible response structures
+        const users = response.data.users || response.data.data || [];
+        const faculty = users.filter(u => u.role === 'faculty' && u._id !== user._id);
         setAvailableFaculty(faculty);
+        console.log('Available faculty loaded:', faculty.length, 'members');
+      } else {
+        console.error('Failed to fetch available faculty: response not successful');
       }
     } catch (error) {
       console.error('Error fetching faculty:', error);

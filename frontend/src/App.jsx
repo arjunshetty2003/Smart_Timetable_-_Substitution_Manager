@@ -18,10 +18,7 @@ import TimetableManagement from './pages/admin/TimetableManagement';
 import SchedulePage from './pages/SchedulePage';
 
 // Faculty pages
-import MyClasses from './pages/faculty/MyClasses';
-import SubstitutionRequests from './pages/faculty/SubstitutionRequests';
-import Availability from './pages/faculty/Availability';
-import CreateSpecialClass from './pages/faculty/CreateSpecialClass';
+import FacultyOverview from './pages/faculty/FacultyOverview';
 
 // Student pages
 import SpecialClasses from './pages/student/SpecialClasses';
@@ -182,46 +179,13 @@ function App() {
           } 
         />
 
-        {/* Faculty Routes */}
+        {/* Faculty Routes - Single Overview Page */}
         <Route 
-          path="/faculty/classes" 
+          path="/faculty/*" 
           element={
             <ProtectedRoute allowedRoles={['faculty']}>
               <DashboardLayout>
-                <MyClasses />
-              </DashboardLayout>
-            </ProtectedRoute>
-          } 
-        />
-
-        <Route 
-          path="/faculty/substitutions" 
-          element={
-            <ProtectedRoute allowedRoles={['faculty']}>
-              <DashboardLayout>
-                <SubstitutionRequests />
-              </DashboardLayout>
-            </ProtectedRoute>
-          } 
-        />
-
-        <Route 
-          path="/faculty/availability" 
-          element={
-            <ProtectedRoute allowedRoles={['faculty']}>
-              <DashboardLayout>
-                <Availability />
-              </DashboardLayout>
-            </ProtectedRoute>
-          } 
-        />
-
-        <Route 
-          path="/faculty/create-special-class" 
-          element={
-            <ProtectedRoute allowedRoles={['faculty']}>
-              <DashboardLayout>
-                <CreateSpecialClass />
+                <FacultyOverview />
               </DashboardLayout>
             </ProtectedRoute>
           } 

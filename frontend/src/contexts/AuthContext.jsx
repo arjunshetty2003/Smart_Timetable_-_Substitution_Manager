@@ -64,26 +64,56 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     const checkAuth = async () => {
       const token = localStorage.getItem('token');
+      const savedUser = localStorage.getItem('user');
+      
       if (token) {
         try {
-          // Add timeout to prevent hanging
+          // If we have a saved user, use it immediately to prevent logout flash
+          if (savedUser) {
+            try {
+              const user = JSON.parse(savedUser);
+              dispatch({
+                type: 'LOGIN_SUCCESS',
+                payload: { user },
+              });
+            } catch (parseError) {
+              console.error('Error parsing saved user:', parseError);
+            }
+          }
+          
+          // Then verify with server (with longer timeout for slow connections)
           const timeoutPromise = new Promise((_, reject) =>
-            setTimeout(() => reject(new Error('Authentication check timeout')), 5000)
+            setTimeout(() => reject(new Error('Authentication check timeout')), 15000)
           );
           
           const authPromise = authService.getCurrentUser();
           const response = await Promise.race([authPromise, timeoutPromise]);
           
+          // Update with fresh user data from server
+          const userData = response.data.data || response.data.user;
+          localStorage.setItem('user', JSON.stringify(userData));
+          
           dispatch({
             type: 'LOGIN_SUCCESS',
-            payload: { user: response.data.data },
+            payload: { user: userData },
           });
         } catch (error) {
           console.error('Auth check failed:', error);
-          localStorage.removeItem('token');
-          dispatch({ type: 'SET_LOADING', payload: false });
+          
+          // Only clear auth if it's a real auth error, not a network timeout
+          if (error.response?.status === 401 || error.response?.status === 403) {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            dispatch({ type: 'AUTH_ERROR', payload: 'Session expired' });
+          } else {
+            // For network errors, just stop loading but keep user logged in
+            console.warn('Network error during auth check, keeping user logged in');
+            dispatch({ type: 'SET_LOADING', payload: false });
+          }
         }
       } else {
+        // No token, clear any saved user data
+        localStorage.removeItem('user');
         dispatch({ type: 'SET_LOADING', payload: false });
       }
     };
@@ -97,6 +127,7 @@ export function AuthProvider({ children }) {
       const response = await authService.login(email, password);
       
       localStorage.setItem('token', response.data.token);
+      localStorage.setItem('user', JSON.stringify(response.data.user));
       dispatch({
         type: 'LOGIN_SUCCESS',
         payload: { user: response.data.user },
@@ -118,6 +149,7 @@ export function AuthProvider({ children }) {
       const response = await authService.register(userData);
       
       localStorage.setItem('token', response.data.token);
+      localStorage.setItem('user', JSON.stringify(response.data.user));
       dispatch({
         type: 'LOGIN_SUCCESS',
         payload: { user: response.data.user },
@@ -140,6 +172,7 @@ export function AuthProvider({ children }) {
       console.error('Logout error:', error);
     } finally {
       localStorage.removeItem('token');
+      localStorage.removeItem('user');
       dispatch({ type: 'LOGOUT' });
       toast.success('Logged out successfully');
     }

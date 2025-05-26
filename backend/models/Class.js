@@ -15,7 +15,7 @@ const classSchema = new mongoose.Schema({
   facultyId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
-    required: [true, 'Faculty ID is required']
+    required: false
   },
   scheduleId: {
     type: mongoose.Schema.Types.ObjectId,

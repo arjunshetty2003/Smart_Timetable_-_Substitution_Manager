@@ -32,10 +32,15 @@ api.interceptors.response.use(
   },
   (error) => {
     if (error.response?.status === 401) {
-      // Token expired or invalid
+      // Token expired or invalid - only redirect if we're not already on login page
       localStorage.removeItem('token');
       localStorage.removeItem('user');
-      window.location.href = '/login';
+      
+      // Avoid infinite redirects
+      if (!window.location.pathname.includes('/login')) {
+        console.log('Token expired, redirecting to login...');
+        window.location.href = '/login';
+      }
     }
     return Promise.reject(error);
   }
@@ -122,6 +127,15 @@ export const specialClassesAPI = {
   register: (id) => api.post(`/special-classes/${id}/register`),
   unregister: (id) => api.delete(`/special-classes/${id}/register`),
   getUpcoming: (params) => api.get('/special-classes/upcoming', { params }),
+};
+
+// Notifications API
+export const notificationsAPI = {
+  getAll: (params) => api.get('/notifications', { params }),
+  markAsRead: (id) => api.put(`/notifications/${id}/read`),
+  markAllAsRead: () => api.put('/notifications/read-all'),
+  delete: (id) => api.delete(`/notifications/${id}`),
+  create: (notificationData) => api.post('/notifications', notificationData),
 };
 
 // Health check

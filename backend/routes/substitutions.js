@@ -95,6 +95,37 @@ router.post('/', protect, async (req, res) => {
       .populate('substituteFacultyId', 'name email department')
       .populate('subjectId', 'subjectName subjectCode');
 
+    // Create notification for substitute faculty if assigned
+    if (substitution.substituteFacultyId && substitution.status !== 'cancelled') {
+      const Notification = require('../models/Notification');
+      
+      await Notification.create({
+        userId: substitution.substituteFacultyId,
+        title: 'New Substitution Assignment',
+        message: `You have been assigned as a substitute for ${substitution.originalFacultyId.name} on ${new Date(substitution.date).toLocaleDateString()}`,
+        type: 'substitution',
+        relatedId: substitution._id,
+        relatedModel: 'Substitution',
+        priority: 'high'
+      });
+    }
+
+    // Create notification for admin
+    const Notification = require('../models/Notification');
+    const adminUsers = await require('../models/User').find({ role: 'admin' });
+    
+    for (const admin of adminUsers) {
+      await Notification.create({
+        userId: admin._id,
+        title: 'New Substitution Request',
+        message: `${substitution.originalFacultyId.name} has requested a substitution for ${new Date(substitution.date).toLocaleDateString()}. Reason: ${substitution.reason}`,
+        type: 'substitution',
+        relatedId: substitution._id,
+        relatedModel: 'Substitution',
+        priority: 'medium'
+      });
+    }
+
     res.status(201).json({
       success: true,
       data: populatedSubstitution

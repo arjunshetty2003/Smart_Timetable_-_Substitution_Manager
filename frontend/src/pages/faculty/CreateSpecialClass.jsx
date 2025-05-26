@@ -43,11 +43,17 @@ const CreateSpecialClass = () => {
     try {
       const response = await usersAPI.getAll();
       if (response.data.success) {
-        const faculty = response.data.users?.filter(u => u.role === 'faculty') || [];
+        // Handle both possible response structures
+        const users = response.data.users || response.data.data || [];
+        const faculty = users.filter(u => u.role === 'faculty') || [];
         setFacultyList(faculty);
+        console.log('Faculty loaded:', faculty.length, 'members');
+      } else {
+        console.error('Failed to fetch faculty: response not successful');
       }
     } catch (error) {
       console.error('Error fetching faculty:', error);
+      setError('Failed to load faculty list');
     }
   };
 

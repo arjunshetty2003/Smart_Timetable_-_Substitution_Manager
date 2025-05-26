@@ -76,18 +76,35 @@ router.get('/:id', protect, async (req, res) => {
 // @access  Private (Admin only)
 router.post('/', protect, async (req, res) => {
   try {
+    console.log('=== CREATE CLASS REQUEST ===');
+    console.log('User:', req.user);
+    console.log('Request body:', req.body);
+    
     // Check if user is admin
     if (req.user.role !== 'admin') {
+      console.log('Access denied - user role:', req.user.role);
       return res.status(403).json({
         success: false,
         message: 'Access denied. Admin only.'
       });
     }
 
-    const classData = await Class.create(req.body);
+    // Clean up the request body - remove empty facultyId
+    const cleanedData = { ...req.body };
+    if (!cleanedData.facultyId || cleanedData.facultyId === '' || cleanedData.facultyId === null || cleanedData.facultyId === undefined) {
+      delete cleanedData.facultyId;
+    }
+
+    console.log('Cleaned data:', cleanedData);
+
+    const classData = await Class.create(cleanedData);
+    console.log('Class created successfully:', classData);
+    
     const populatedClass = await Class.findById(classData._id)
       .populate('facultyId', 'name email department')
       .populate('scheduleId');
+
+    console.log('Populated class:', populatedClass);
 
     res.status(201).json({
       success: true,
@@ -95,6 +112,7 @@ router.post('/', protect, async (req, res) => {
     });
   } catch (error) {
     console.error('Create class error:', error);
+    console.error('Error stack:', error.stack);
     res.status(400).json({
       success: false,
       message: 'Failed to create class',
@@ -116,9 +134,15 @@ router.put('/:id', protect, async (req, res) => {
       });
     }
 
+    // Clean up the request body - remove empty facultyId
+    const cleanedData = { ...req.body };
+    if (!cleanedData.facultyId || cleanedData.facultyId === '' || cleanedData.facultyId === null || cleanedData.facultyId === undefined) {
+      delete cleanedData.facultyId;
+    }
+
     const classData = await Class.findByIdAndUpdate(
       req.params.id,
-      req.body,
+      cleanedData,
       { new: true, runValidators: true }
     )
     .populate('facultyId', 'name email department')

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Calendar, Clock, MapPin, User, Filter } from 'lucide-react';
-import { schedulesAPI } from '../services/api';
+import { timetablesAPI } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 
 const SchedulePage = () => {
@@ -19,13 +19,21 @@ const SchedulePage = () => {
     try {
       setLoading(true);
       setError(null);
+      
+      // Get the day name from selected date
+      const dayName = new Date(selectedDate).toLocaleDateString('en-US', { weekday: 'long' });
+      
       const params = {
-        date: selectedDate,
-        ...(filterStatus !== 'all' && { status: filterStatus })
+        day: dayName,
+        ...(user.role === 'faculty' && { facultyId: user._id })
       };
       
-      const response = await schedulesAPI.getAll(params);
-      setSchedules(response.data.schedules || []);
+      const response = await timetablesAPI.getAll(params);
+      if (response.data.success) {
+        setSchedules(response.data.data || []);
+      } else {
+        setError('Failed to fetch timetables');
+      }
     } catch (err) {
       console.error('Schedule fetch error:', err);
       if (err.response?.status === 401) {
@@ -92,32 +100,34 @@ const SchedulePage = () => {
           </div>
         </div>
 
-        {/* Filters */}
-        <div className="flex flex-col sm:flex-row gap-4">
-          <div className="flex items-center space-x-2">
-            <Calendar className="h-4 w-4 text-gray-400" />
-            <input
-              type="date"
-              value={selectedDate}
-              onChange={(e) => setSelectedDate(e.target.value)}
-              className="input-field"
-            />
+        {/* Filters - Only show for non-student users */}
+        {user?.role !== 'student' && (
+          <div className="flex flex-col sm:flex-row gap-4">
+            <div className="flex items-center space-x-2">
+              <Calendar className="h-4 w-4 text-gray-400" />
+              <input
+                type="date"
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+            <div className="flex items-center space-x-2">
+              <Filter className="h-4 w-4 text-gray-400" />
+              <select
+                value={filterStatus}
+                onChange={(e) => setFilterStatus(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="all">All Status</option>
+                <option value="active">Active</option>
+                <option value="cancelled">Cancelled</option>
+                <option value="substituted">Substituted</option>
+                <option value="special">Special</option>
+              </select>
+            </div>
           </div>
-          <div className="flex items-center space-x-2">
-            <Filter className="h-4 w-4 text-gray-400" />
-            <select
-              value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value)}
-              className="input-field"
-            >
-              <option value="all">All Status</option>
-              <option value="active">Active</option>
-              <option value="cancelled">Cancelled</option>
-              <option value="substituted">Substituted</option>
-              <option value="special">Special</option>
-            </select>
-          </div>
-        </div>
+        )}
       </div>
 
       {/* Error Display */}
@@ -184,14 +194,14 @@ const SchedulePage = () => {
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center space-x-2">
                             <h4 className="text-lg font-medium text-gray-900">
-                              {schedule.subject}
+                              {schedule.subjectId?.subjectName || 'Subject'}
                             </h4>
-                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(schedule.status)}`}>
-                              {schedule.status.charAt(0).toUpperCase() + schedule.status.slice(1)}
+                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800`}>
+                              Active
                             </span>
                           </div>
                           <p className="text-sm text-gray-600 mt-1">
-                            Class: {schedule.classCode}
+                            Class: {schedule.classId?.className || 'Class'}
                           </p>
                           <div className="flex items-center space-x-4 mt-2 text-sm text-gray-500">
                             <div className="flex items-center">

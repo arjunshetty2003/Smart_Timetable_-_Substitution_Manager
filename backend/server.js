@@ -57,6 +57,7 @@ app.use('/api/classes', require('./routes/classes'));
 app.use('/api/substitutions', require('./routes/substitutions'));
 app.use('/api/timetables', require('./routes/timetables'));
 app.use('/api/special-classes', require('./routes/specialClasses'));
+app.use('/api/notifications', require('./routes/notifications'));
 
 // Health check route
 app.get('/api/health', (req, res) => {
