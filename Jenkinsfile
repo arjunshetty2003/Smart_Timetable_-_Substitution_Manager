@@ -1,26 +1,29 @@
 pipeline {
     agent any
 
-    tools {
-        nodejs 'NodeJS 18'  // Must match the name configured in Global Tool Configuration
-    }
-
     environment {
         CI = 'true'
     }
 
     stages {
+        stage('Install Node.js 22') {
+            steps {
+                script {
+                    // Check if Node.js 22 is installed
+                    def nodeInstalled = sh(script: 'node -v', returnStatus: true)
+                    if (nodeInstalled != 0) {
+                        // Install Node.js 22 if not installed
+                        sh 'curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -'
+                        sh 'sudo apt-get install -y nodejs'
+                    }
+                }
+            }
+        }
+        
         stage('Checkout') {
             steps {
                 echo 'Cloning repository...'
-                checkout scm
-            }
-        }
-
-        stage('Verify Node Installation') {
-            steps {
-                sh 'node -v'
-                sh 'npm -v'
+                git 'https://github.com/arjunshetty2003/Smart_Timetable_-_Substitution_Manager.git'
             }
         }
 
@@ -34,14 +37,14 @@ pipeline {
         stage('Run Tests') {
             steps {
                 echo 'Running tests...'
-                sh 'npm test || echo "⚠️ Tests failed or not configured."'
+                sh 'npm test'
             }
         }
 
         stage('Build Project') {
             steps {
                 echo 'Building project...'
-                sh 'npm run build || echo "⚠️ Build step failed or not found."'
+                sh 'npm run build'
             }
         }
     }
