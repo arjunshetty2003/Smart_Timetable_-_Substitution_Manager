@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     tools {
-        nodejs "NodeJS 18" // Set this in Jenkins: Manage Jenkins → Global Tools
+        nodejs "NodeJS 18"
     }
 
     environment {
@@ -12,25 +12,29 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
+                echo 'Cloning repository...'
                 git 'https://github.com/arjunshetty2003/Smart_Timetable_-_Substitution_Manager.git'
             }
         }
 
         stage('Install Dependencies') {
             steps {
+                echo 'Installing dependencies...'
                 sh 'npm install'
             }
         }
 
         stage('Run Tests') {
             steps {
-                sh 'npm test' // Replace if you have a different test command
+                echo 'Running tests...'
+                sh 'npm test'
             }
         }
 
         stage('Build Project') {
             steps {
-                sh 'npm run build' // Replace if you use another build command
+                echo 'Building project...'
+                sh 'npm run build'
             }
         }
     }
