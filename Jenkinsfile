@@ -8,25 +8,16 @@ pipeline {
             }
         }
 
-        stage('Install Dependencies') {
+        stage('Install, Test, Build') {
             steps {
                 sh '''
-                    /Users/arjun/.nvm/versions/node/v20.18.1/bin/node -v
-                    /Users/arjun/.nvm/versions/node/v20.18.1/bin/npm -v
-                    /Users/arjun/.nvm/versions/node/v20.18.1/bin/npm install
+                    export PATH="/Users/arjun/.nvm/versions/node/v20.18.1/bin:$PATH"
+                    node -v
+                    npm -v
+                    npm install
+                    npm test || echo "Tests failed (ignored for now)"
+                    npm run build
                 '''
-            }
-        }
-
-        stage('Run Tests') {
-            steps {
-                sh '/Users/arjun/.nvm/versions/node/v20.18.1/bin/npm test || echo "Tests failed (ignored for now)"'
-            }
-        }
-
-        stage('Build') {
-            steps {
-                sh '/Users/arjun/.nvm/versions/node/v20.18.1/bin/npm run build'
             }
         }
 
