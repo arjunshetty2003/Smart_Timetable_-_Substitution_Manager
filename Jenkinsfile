@@ -11,22 +11,22 @@ pipeline {
         stage('Install Dependencies') {
             steps {
                 sh '''
-                    node -v
-                    npm -v
-                    npm install
+                    /Users/arjun/.nvm/versions/node/v20.18.1/bin/node -v
+                    /Users/arjun/.nvm/versions/node/v20.18.1/bin/npm -v
+                    /Users/arjun/.nvm/versions/node/v20.18.1/bin/npm install
                 '''
             }
         }
 
         stage('Run Tests') {
             steps {
-                sh 'npm test || echo "Tests failed (ignored for now)"'
+                sh '/Users/arjun/.nvm/versions/node/v20.18.1/bin/npm test || echo "Tests failed (ignored for now)"'
             }
         }
 
         stage('Build') {
             steps {
-                sh 'npm run build'
+                sh '/Users/arjun/.nvm/versions/node/v20.18.1/bin/npm run build'
             }
         }
 
