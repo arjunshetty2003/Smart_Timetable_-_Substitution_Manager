@@ -1,10 +1,6 @@
 pipeline {
     agent any
 
-    environment {
-        NVM_DIR = "$HOME/.nvm"
-    }
-
     stages {
         stage('Checkout Code') {
             steps {
@@ -12,30 +8,19 @@ pipeline {
             }
         }
 
-        stage('Setup Node') {
-            steps {
-                script {
-                    sh '''
-                        export NVM_DIR="$HOME/.nvm"
-                        [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
-                        nvm install 18
-                        nvm use 18
-                        node -v
-                        npm -v
-                    '''
-                }
-            }
-        }
-
         stage('Install Dependencies') {
             steps {
-                sh 'npm install'
+                sh '''
+                    node -v
+                    npm -v
+                    npm install
+                '''
             }
         }
 
         stage('Run Tests') {
             steps {
-                sh 'npm test || echo "Tests failed, but continuing..."'
+                sh 'npm test || echo "Tests failed (ignored for now)"'
             }
         }
 
@@ -47,7 +32,7 @@ pipeline {
 
         stage('Deploy') {
             steps {
-                echo 'Deploy stage (add deployment commands here if needed)'
+                echo 'Deploy stage — add deployment commands here'
             }
         }
     }
