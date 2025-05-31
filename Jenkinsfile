@@ -12,7 +12,7 @@ pipeline {
         MONGO_URI = credentials('mongo-uri')
         JWT_SECRET = credentials('jwt-secret')
     }
-    
+
     stages {
         stage('Checkout') {
             steps {
@@ -117,7 +117,7 @@ pipeline {
                 }
             }
         }
-        
+
         stage('Integration Tests') {
             when {
                 branch 'main'
@@ -128,7 +128,7 @@ pipeline {
                 // Add actual integration test commands here
             }
         }
-        
+
         stage('Deploy to Production') {
             when {
                 branch 'main'
@@ -144,7 +144,7 @@ pipeline {
             }
         }
     }
-    
+
     post {
         always {
             // Clean up

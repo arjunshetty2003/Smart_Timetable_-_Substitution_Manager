@@ -60,8 +60,8 @@ const FacultyOverview = () => {
         
         // If we have subjects, set the default subject
         if (response.data.data && response.data.data.length > 0) {
-          setDefaultSubject(response.data.data[0]);
-          console.log('Default subject set:', response.data.data[0]);
+        setDefaultSubject(response.data.data[0]);
+        console.log('Default subject set:', response.data.data[0]);
         } else {
           // Create a fallback default subject for operations that require one
           const fallbackSubject = {
@@ -199,9 +199,9 @@ const FacultyOverview = () => {
       const response = await specialClassesAPI.create(specialClassData);
       
       if (response.data.success) {
-        showMessage('Special class added successfully!');
-        setShowAddClassModal(false);
-        setAddClassForm({ date: '', time: '', reason: '' });
+      showMessage('Special class added successfully!');
+      setShowAddClassModal(false);
+      setAddClassForm({ date: '', time: '', reason: '' });
         // Refresh timetables to show the new class
         fetchTimetables();
       } else {
