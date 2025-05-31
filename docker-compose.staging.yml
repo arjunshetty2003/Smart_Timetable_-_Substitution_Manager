@@ -1,0 +1,30 @@
+version: '3.8'
+
+services:
+  app:
+    environment:
+      - NODE_ENV=staging
+      # The MONGO_URI and JWT_SECRET will be injected from Jenkins credentials
+    ports:
+      - "8001:3001"  # Different port for staging
+      - "8173:5173"  # Different port for staging
+    labels:
+      - "environment=staging"
+      - "app=smart-timetable"
+    
+  # Enable seed service for staging
+  seed:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: timetable-seed-staging
+    command: ["node", "/app/backend/scripts/seedDatabase.js"]
+    depends_on:
+      app:
+        condition: service_started
+    environment:
+      - NODE_ENV=staging
+      # The MONGO_URI will be injected from Jenkins credentials
+    networks:
+      - timetable-network
+    restart: on-failure 

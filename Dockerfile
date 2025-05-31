@@ -1,0 +1,55 @@
+# Multi-stage build for Smart Timetable & Substitution Manager
+
+# Stage 1: Build Frontend
+FROM node:18-alpine AS frontend-build
+WORKDIR /app/frontend
+COPY frontend/package*.json ./
+RUN npm ci
+COPY frontend/ ./
+RUN npm run build
+
+# Stage 2: Build Backend
+FROM node:18-alpine AS backend-build
+WORKDIR /app/backend
+COPY backend/package*.json ./
+RUN npm ci --production
+COPY backend/ ./
+
+# Stage 3: Final Image
+FROM node:18-alpine
+WORKDIR /app
+
+# Install MongoDB client tools
+RUN apk add --no-cache mongodb-tools
+
+# Create app structure
+COPY --from=backend-build /app/backend ./backend
+COPY --from=frontend-build /app/frontend/dist ./frontend/dist
+
+# Create a .env file with defaults (will be overridden by environment variables)
+RUN echo "NODE_ENV=production" > ./backend/.env \
+    && echo "PORT=3001" >> ./backend/.env \
+    && echo "MONGO_URI=mongodb://localhost:27017/timetable_db" >> ./backend/.env \
+    && echo "JWT_SECRET=default_jwt_secret_replace_in_production" >> ./backend/.env \
+    && echo "JWT_EXPIRE=30d" >> ./backend/.env
+
+# Install serve to serve the frontend
+RUN npm install -g serve
+
+# Copy startup script
+COPY docker-entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
+# Expose ports
+EXPOSE 3001 5173
+
+# Set environment variables
+ENV NODE_ENV=production
+ENV BACKEND_PORT=3001
+ENV FRONTEND_PORT=5173
+
+# Set working directory to backend
+WORKDIR /app/backend
+
+# Start the application
+ENTRYPOINT ["docker-entrypoint.sh"] 
