@@ -1,68 +1,77 @@
 version: '3.8'
 
 services:
-  # MongoDB Service
-  mongodb:
-    image: mongo:6
-    container_name: timetable-mongodb
-    ports:
-      - "27017:27017"
-    volumes:
-      - mongodb_data:/data/db
-    environment:
-      - MONGO_INITDB_ROOT_USERNAME=admin
-      - MONGO_INITDB_ROOT_PASSWORD=password
-    networks:
-      - timetable-network
-    healthcheck:
-      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 30s
-
-  # Application Service
-  app:
+  frontend:
     build:
-      context: .
+      context: ./frontend
       dockerfile: Dockerfile
-    container_name: timetable-app
     ports:
-      - "3001:3001"  # Backend API
-      - "5173:5173"  # Frontend
+      - "3000:3000"
+    environment:
+      - VITE_API_URL=http://localhost:5001
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    depends_on:
+      - backend
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "5001:5001"
+    environment:
+      - NODE_ENV=development
+      - PORT=5001
+      - MONGO_URI=mongodb://admin:password@mongodb:27017/timetable_db?authSource=admin
+      - JWT_SECRET=local_development_jwt_secret
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
     depends_on:
       mongodb:
         condition: service_healthy
-    environment:
-      - NODE_ENV=production
-      - MONGO_URI=mongodb://admin:password@mongodb:27017/timetable_db?authSource=admin
-      - JWT_SECRET=your_secure_jwt_secret_here
-      - JWT_EXPIRE=30d
     networks:
-      - timetable-network
-    restart: unless-stopped
+      - app-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:5001/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
 
-  # Seed Service (optional - uncomment to seed the database)
-  # seed:
-  #   build:
-  #     context: .
-  #     dockerfile: Dockerfile
-  #   container_name: timetable-seed
-  #   command: ["node", "/app/backend/scripts/seedDatabase.js"]
-  #   depends_on:
-  #     app:
-  #       condition: service_started
-  #   environment:
-  #     - NODE_ENV=production
-  #     - MONGO_URI=mongodb://admin:password@mongodb:27017/timetable_db?authSource=admin
-  #   networks:
-  #     - timetable-network
-  #   restart: on-failure
+  mongodb:
+    image: mongo:6.0
+    container_name: mongodb
+    ports:
+      - "27017:27017"
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=admin
+      - MONGO_INITDB_ROOT_PASSWORD=password
+      - MONGO_INITDB_DATABASE=timetable_db
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - app-network
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
 
 networks:
-  timetable-network:
+  app-network:
     driver: bridge
 
 volumes:
-  mongodb_data:
-    driver: local 
+  mongodb_data: 

@@ -28,7 +28,7 @@ COPY --from=frontend-build /app/frontend/dist ./frontend/dist
 
 # Create a .env file with defaults (will be overridden by environment variables)
 RUN echo "NODE_ENV=production" > ./backend/.env \
-    && echo "PORT=3001" >> ./backend/.env \
+    && echo "PORT=5001" >> ./backend/.env \
     && echo "MONGO_URI=mongodb://localhost:27017/timetable_db" >> ./backend/.env \
     && echo "JWT_SECRET=default_jwt_secret_replace_in_production" >> ./backend/.env \
     && echo "JWT_EXPIRE=30d" >> ./backend/.env
@@ -41,12 +41,12 @@ COPY docker-entrypoint.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
 # Expose ports
-EXPOSE 3001 5173
+EXPOSE 5001 3000
 
 # Set environment variables
 ENV NODE_ENV=production
-ENV BACKEND_PORT=3001
-ENV FRONTEND_PORT=5173
+ENV BACKEND_PORT=5001
+ENV FRONTEND_PORT=3000
 
 # Set working directory to backend
 WORKDIR /app/backend

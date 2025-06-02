@@ -1,0 +1,116 @@
+pipeline {
+    agent any
+
+    environment {
+        DOCKER_REGISTRY = 'your-registry-url'  // Replace with your registry
+        VERSION = params.VERSION ?: 'latest'
+        DEPLOY_ENV = params.ENVIRONMENT ?: 'staging'
+        KUBECONFIG = credentials('kubeconfig')
+    }
+
+    parameters {
+        string(name: 'VERSION', defaultValue: 'latest', description: 'Version to deploy')
+        choice(name: 'ENVIRONMENT', choices: ['staging', 'production'], description: 'Deployment environment')
+    }
+
+    stages {
+        stage('Validate Parameters') {
+            steps {
+                script {
+                    if (!params.VERSION) {
+                        error 'Version parameter is required'
+                    }
+                }
+            }
+        }
+
+        stage('Pull Images') {
+            steps {
+                withCredentials([usernamePassword(credentialsId: 'docker-registry-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                    sh """
+                        echo "${DOCKER_PASS}" | docker login ${DOCKER_REGISTRY} -u "${DOCKER_USER}" --password-stdin
+                        docker pull ${DOCKER_REGISTRY}/backend:${VERSION}
+                        docker pull ${DOCKER_REGISTRY}/frontend:${VERSION}
+                    """
+                }
+            }
+        }
+
+        stage('Deploy to Environment') {
+            steps {
+                script {
+                    def envConfig = [
+                        staging: [
+                            namespace: 'timetable-staging',
+                            domain: 'staging.timetable-manager.com'
+                        ],
+                        production: [
+                            namespace: 'timetable-production',
+                            domain: 'timetable-manager.com'
+                        ]
+                    ]
+
+                    def config = envConfig[DEPLOY_ENV]
+
+                    // Deploy using kubectl
+                    sh """
+                        export KUBECONFIG=\${KUBECONFIG}
+                        
+                        # Update Kubernetes deployments
+                        kubectl -n ${config.namespace} set image deployment/backend backend=${DOCKER_REGISTRY}/backend:${VERSION}
+                        kubectl -n ${config.namespace} set image deployment/frontend frontend=${DOCKER_REGISTRY}/frontend:${VERSION}
+                        
+                        # Wait for rollout
+                        kubectl -n ${config.namespace} rollout status deployment/backend
+                        kubectl -n ${config.namespace} rollout status deployment/frontend
+                    """
+                }
+            }
+        }
+
+        stage('Verify Deployment') {
+            steps {
+                script {
+                    def config = DEPLOY_ENV == 'production' ? 
+                        [domain: 'timetable-manager.com'] : 
+                        [domain: 'staging.timetable-manager.com']
+
+                    // Health check
+                    sh """
+                        # Wait for services to be ready
+                        sleep 30
+                        
+                        # Check frontend
+                        curl -f https://${config.domain}/health || exit 1
+                        
+                        # Check backend
+                        curl -f https://api.${config.domain}/health || exit 1
+                    """
+                }
+            }
+        }
+    }
+
+    post {
+        success {
+            script {
+                // Send success notification
+                emailext (
+                    subject: "Deployment Successful: ${DEPLOY_ENV}",
+                    body: "Version ${VERSION} has been successfully deployed to ${DEPLOY_ENV}",
+                    recipientProviders: [[$class: 'DevelopersRecipientProvider']]
+                )
+            }
+        }
+        failure {
+            script {
+                // Send failure notification
+                emailext (
+                    subject: "Deployment Failed: ${DEPLOY_ENV}",
+                    body: "Version ${VERSION} deployment to ${DEPLOY_ENV} has failed",
+                    recipientProviders: [[$class: 'DevelopersRecipientProvider']]
+                )
+            }
+        }
+    }
+} 

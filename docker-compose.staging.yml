@@ -1,16 +1,49 @@
 version: '3.8'
 
 services:
+  # MongoDB Service for staging
+  mongodb:
+    image: mongo:6
+    container_name: timetable-mongodb-staging
+    ports:
+      - "27018:27017"  # Different port for staging
+    volumes:
+      - mongodb_staging_data:/data/db
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=admin
+      - MONGO_INITDB_ROOT_PASSWORD=staging_password
+    networks:
+      - timetable-staging-network
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # Application Service
   app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: timetable-app-staging
+    ports:
+      - "8001:5001"  # Backend API - mapped to 8001 externally for staging
+      - "8000:3000"  # Frontend - mapped to 8000 externally for staging
+    depends_on:
+      mongodb:
+        condition: service_healthy
     environment:
       - NODE_ENV=staging
-      # The MONGO_URI and JWT_SECRET will be injected from Jenkins credentials
-    ports:
-      - "8001:3001"  # Different port for staging
-      - "8173:5173"  # Different port for staging
+      - MONGO_URI=mongodb://admin:staging_password@mongodb:27017/timetable_staging_db?authSource=admin
+      # The JWT_SECRET will be injected from Jenkins credentials
+      - JWT_EXPIRE=7d
+    networks:
+      - timetable-staging-network
     labels:
       - "environment=staging"
       - "app=smart-timetable"
+    restart: unless-stopped
     
   # Enable seed service for staging
   seed:
@@ -24,7 +57,16 @@ services:
         condition: service_started
     environment:
       - NODE_ENV=staging
-      # The MONGO_URI will be injected from Jenkins credentials
+      - MONGO_URI=mongodb://admin:staging_password@mongodb:27017/timetable_staging_db?authSource=admin
+      # Additional environment variables if needed
     networks:
-      - timetable-network
-    restart: on-failure 
+      - timetable-staging-network
+    restart: on-failure
+
+networks:
+  timetable-staging-network:
+    driver: bridge
+
+volumes:
+  mongodb_staging_data:
+    driver: local 

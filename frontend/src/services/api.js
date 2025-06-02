@@ -1,146 +1,212 @@
 import axios from 'axios';
 
-// Create axios instance with default config
-const api = axios.create({
-  baseURL: process.env.NODE_ENV === 'production' 
-    ? 'https://your-api-domain.com/api' 
-    : 'http://localhost:3001/api',
-  timeout: 10000,
+// Use environment variable if available, otherwise default to relative path
+const API_URL = import.meta.env.VITE_API_URL || '/api';
+
+// Create an axios instance with default config
+const apiClient = axios.create({
+  baseURL: API_URL,
   headers: {
     'Content-Type': 'application/json',
-  },
+  }
 });
 
-// Request interceptor to add auth token
-api.interceptors.request.use(
+// Add a request interceptor for authentication
+apiClient.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('authToken');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
   },
-  (error) => {
-    return Promise.reject(error);
-  }
+  (error) => Promise.reject(error)
 );
 
-// Response interceptor to handle errors
-api.interceptors.response.use(
-  (response) => {
-    return response;
-  },
+// Add a response interceptor for error handling
+apiClient.interceptors.response.use(
+  (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
-      // Token expired or invalid - only redirect if we're not already on login page
-      localStorage.removeItem('token');
+    // Handle session expiration
+    if (error.response && error.response.status === 401) {
+      // Clear local auth data
+      localStorage.removeItem('authToken');
       localStorage.removeItem('user');
       
-      // Avoid infinite redirects
-      if (!window.location.pathname.includes('/login')) {
-        console.log('Token expired, redirecting to login...');
+      // Redirect to login page if not already there
+      if (window.location.pathname !== '/login') {
         window.location.href = '/login';
       }
     }
+    
     return Promise.reject(error);
   }
 );
 
-// Auth API
+// API service methods
+const apiService = {
+  // Auth endpoints
+  auth: {
+    login: (credentials) => apiClient.post('/auth/login', credentials),
+    register: (userData) => apiClient.post('/auth/register', userData),
+    verifyToken: () => apiClient.get('/auth/verify'),
+    forgotPassword: (email) => apiClient.post('/auth/forgot-password', { email }),
+    resetPassword: (token, password) => apiClient.post('/auth/reset-password', { token, password }),
+  },
+  
+  // User endpoints
+  users: {
+    getProfile: () => apiClient.get('/users/me'),
+    updateProfile: (userData) => apiClient.put('/users/me', userData),
+    changePassword: (passwordData) => apiClient.post('/users/change-password', passwordData),
+  },
+  
+  // Timetable endpoints
+  timetables: {
+    getAll: () => apiClient.get('/timetables'),
+    getById: (id) => apiClient.get(`/timetables/${id}`),
+    create: (timetableData) => apiClient.post('/timetables', timetableData),
+    update: (id, timetableData) => apiClient.put(`/timetables/${id}`, timetableData),
+    delete: (id) => apiClient.delete(`/timetables/${id}`),
+  },
+  
+  // Schedule endpoints
+  schedules: {
+    getAll: () => apiClient.get('/schedules'),
+    getById: (id) => apiClient.get(`/schedules/${id}`),
+    create: (scheduleData) => apiClient.post('/schedules', scheduleData),
+    update: (id, scheduleData) => apiClient.put(`/schedules/${id}`, scheduleData),
+    delete: (id) => apiClient.delete(`/schedules/${id}`),
+  },
+  
+  // Subject endpoints
+  subjects: {
+    getAll: () => apiClient.get('/subjects'),
+    getById: (id) => apiClient.get(`/subjects/${id}`),
+    create: (subjectData) => apiClient.post('/subjects', subjectData),
+    update: (id, subjectData) => apiClient.put(`/subjects/${id}`, subjectData),
+    delete: (id) => apiClient.delete(`/subjects/${id}`),
+  },
+  
+  // Class endpoints
+  classes: {
+    getAll: () => apiClient.get('/classes'),
+    getById: (id) => apiClient.get(`/classes/${id}`),
+    create: (classData) => apiClient.post('/classes', classData),
+    update: (id, classData) => apiClient.put(`/classes/${id}`, classData),
+    delete: (id) => apiClient.delete(`/classes/${id}`),
+  },
+  
+  // Substitution endpoints
+  substitutions: {
+    getAll: () => apiClient.get('/substitutions'),
+    getById: (id) => apiClient.get(`/substitutions/${id}`),
+    create: (substitutionData) => apiClient.post('/substitutions', substitutionData),
+    update: (id, substitutionData) => apiClient.put(`/substitutions/${id}`, substitutionData),
+    delete: (id) => apiClient.delete(`/substitutions/${id}`),
+  },
+  
+  // Special classes endpoints
+  specialClasses: {
+    getAll: () => apiClient.get('/special-classes'),
+    getById: (id) => apiClient.get(`/special-classes/${id}`),
+    create: (specialClassData) => apiClient.post('/special-classes', specialClassData),
+    update: (id, specialClassData) => apiClient.put(`/special-classes/${id}`, specialClassData),
+    delete: (id) => apiClient.delete(`/special-classes/${id}`),
+  },
+  
+  // Notifications endpoints
+  notifications: {
+    getAll: () => apiClient.get('/notifications'),
+    getById: (id) => apiClient.get(`/notifications/${id}`),
+    markAsRead: (id) => apiClient.put(`/notifications/${id}/read`),
+    markAllAsRead: () => apiClient.put('/notifications/read-all'),
+  },
+};
+
+// Export for direct import of the service
+export default apiService;
+
+// Export individual APIs for backward compatibility
 export const authAPI = {
-  login: (credentials) => api.post('/auth/login', credentials),
-  register: (userData) => api.post('/auth/register', userData),
-  getProfile: () => api.get('/auth/me'),
-  updateProfile: (userData) => api.put('/auth/profile', userData),
-  changePassword: (passwordData) => api.put('/auth/change-password', passwordData),
-  logout: () => api.post('/auth/logout'),
+  login: (credentials) => apiClient.post('/auth/login', credentials),
+  register: (userData) => apiClient.post('/auth/register', userData),
+  getProfile: () => apiClient.get('/auth/me'),
+  updateProfile: (userData) => apiClient.put('/auth/profile', userData),
+  changePassword: (passwordData) => apiClient.put('/auth/change-password', passwordData),
+  logout: () => apiClient.post('/auth/logout'),
 };
 
-// Users API
 export const usersAPI = {
-  getAll: () => api.get('/users'),
-  getById: (id) => api.get(`/users/${id}`),
-  create: (userData) => api.post('/users', userData),
-  update: (id, userData) => api.put(`/users/${id}`, userData),
-  delete: (id) => api.delete(`/users/${id}`),
-  getAvailableFaculty: (params) => api.get('/users/faculty/available', { params }),
+  getAll: () => apiClient.get('/users'),
+  getById: (id) => apiClient.get(`/users/${id}`),
+  create: (userData) => apiClient.post('/users', userData),
+  update: (id, userData) => apiClient.put(`/users/${id}`, userData),
+  delete: (id) => apiClient.delete(`/users/${id}`),
+  getAvailableFaculty: (params) => apiClient.get('/users/faculty/available', { params }),
 };
 
-// Subjects API
 export const subjectsAPI = {
-  getAll: (params) => api.get('/subjects', { params }),
-  getById: (id) => api.get(`/subjects/${id}`),
-  create: (subjectData) => api.post('/subjects', subjectData),
-  update: (id, subjectData) => api.put(`/subjects/${id}`, subjectData),
-  delete: (id) => api.delete(`/subjects/${id}`),
+  getAll: (params) => apiClient.get('/subjects', { params }),
+  getById: (id) => apiClient.get(`/subjects/${id}`),
+  create: (subjectData) => apiClient.post('/subjects', subjectData),
+  update: (id, subjectData) => apiClient.put(`/subjects/${id}`, subjectData),
+  delete: (id) => apiClient.delete(`/subjects/${id}`),
 };
 
-// Classes API
 export const classesAPI = {
-  getAll: (params) => api.get('/classes', { params }),
-  getById: (id) => api.get(`/classes/${id}`),
-  create: (classData) => api.post('/classes', classData),
-  update: (id, classData) => api.put(`/classes/${id}`, classData),
-  delete: (id) => api.delete(`/classes/${id}`),
+  getAll: (params) => apiClient.get('/classes', { params }),
+  getById: (id) => apiClient.get(`/classes/${id}`),
+  create: (classData) => apiClient.post('/classes', classData),
+  update: (id, classData) => apiClient.put(`/classes/${id}`, classData),
+  delete: (id) => apiClient.delete(`/classes/${id}`),
 };
 
-// Substitutions API
 export const substitutionsAPI = {
-  getAll: (params) => api.get('/substitutions', { params }),
-  getById: (id) => api.get(`/substitutions/${id}`),
-  create: (substitutionData) => api.post('/substitutions', substitutionData),
-  update: (id, substitutionData) => api.put(`/substitutions/${id}`, substitutionData),
-  delete: (id) => api.delete(`/substitutions/${id}`),
-  approve: (id) => api.put(`/substitutions/${id}/approve`),
-  reject: (id) => api.put(`/substitutions/${id}/reject`),
+  getAll: (params) => apiClient.get('/substitutions', { params }),
+  getById: (id) => apiClient.get(`/substitutions/${id}`),
+  create: (substitutionData) => apiClient.post('/substitutions', substitutionData),
+  update: (id, substitutionData) => apiClient.put(`/substitutions/${id}`, substitutionData),
+  delete: (id) => apiClient.delete(`/substitutions/${id}`),
+  approve: (id) => apiClient.put(`/substitutions/${id}/approve`),
+  reject: (id) => apiClient.put(`/substitutions/${id}/reject`),
 };
 
-// Timetables API
 export const timetablesAPI = {
-  getAll: (params) => api.get('/timetables', { params }),
-  getById: (id) => api.get(`/timetables/${id}`),
-  create: (timetableData) => api.post('/timetables', timetableData),
-  update: (id, timetableData) => api.put(`/timetables/${id}`, timetableData),
-  delete: (id) => api.delete(`/timetables/${id}`),
-  generate: (data) => api.post('/timetables/generate', data),
+  getAll: (params) => apiClient.get('/timetables', { params }),
+  getById: (id) => apiClient.get(`/timetables/${id}`),
+  create: (timetableData) => apiClient.post('/timetables', timetableData),
+  update: (id, timetableData) => apiClient.put(`/timetables/${id}`, timetableData),
+  delete: (id) => apiClient.delete(`/timetables/${id}`),
+  generate: (data) => apiClient.post('/timetables/generate', data),
 };
 
-// Schedules API
 export const schedulesAPI = {
-  getAll: (params) => api.get('/schedules', { params }),
-  getDashboard: () => api.get('/schedules/dashboard'),
-  getFacultyDashboard: () => api.get('/schedules/faculty/dashboard'),
-  getById: (id) => api.get(`/schedules/${id}`),
-  create: (scheduleData) => api.post('/schedules', scheduleData),
-  update: (id, scheduleData) => api.put(`/schedules/${id}`, scheduleData),
-  delete: (id) => api.delete(`/schedules/${id}`),
-  requestSubstitution: (id, data) => api.post(`/schedules/${id}/substitute`, data),
+  getAll: (params) => apiClient.get('/schedules', { params }),
+  getDashboard: () => apiClient.get('/schedules/dashboard'),
+  getFacultyDashboard: () => apiClient.get('/schedules/faculty/dashboard'),
+  getById: (id) => apiClient.get(`/schedules/${id}`),
+  create: (scheduleData) => apiClient.post('/schedules', scheduleData),
+  update: (id, scheduleData) => apiClient.put(`/schedules/${id}`, scheduleData),
+  delete: (id) => apiClient.delete(`/schedules/${id}`),
+  requestSubstitution: (id, data) => apiClient.post(`/schedules/${id}/substitute`, data),
 };
 
-// Special Classes API
 export const specialClassesAPI = {
-  getAll: (params) => api.get('/special-classes', { params }),
-  getById: (id) => api.get(`/special-classes/${id}`),
-  create: (specialClassData) => api.post('/special-classes', specialClassData),
-  update: (id, specialClassData) => api.put(`/special-classes/${id}`, specialClassData),
-  delete: (id) => api.delete(`/special-classes/${id}`),
-  register: (id) => api.post(`/special-classes/${id}/register`),
-  unregister: (id) => api.delete(`/special-classes/${id}/register`),
-  getUpcoming: (params) => api.get('/special-classes/upcoming', { params }),
+  getAll: (params) => apiClient.get('/special-classes', { params }),
+  getById: (id) => apiClient.get(`/special-classes/${id}`),
+  create: (specialClassData) => apiClient.post('/special-classes', specialClassData),
+  update: (id, specialClassData) => apiClient.put(`/special-classes/${id}`, specialClassData),
+  delete: (id) => apiClient.delete(`/special-classes/${id}`),
+  register: (id) => apiClient.post(`/special-classes/${id}/register`),
+  unregister: (id) => apiClient.delete(`/special-classes/${id}/register`),
+  getUpcoming: (params) => apiClient.get('/special-classes/upcoming', { params }),
 };
 
-// Notifications API
 export const notificationsAPI = {
-  getAll: (params) => api.get('/notifications', { params }),
-  markAsRead: (id) => api.put(`/notifications/${id}/read`),
-  markAllAsRead: () => api.put('/notifications/read-all'),
-  delete: (id) => api.delete(`/notifications/${id}`),
-  create: (notificationData) => api.post('/notifications', notificationData),
-};
-
-// Health check
-export const healthAPI = {
-  check: () => api.get('/health'),
-};
-
-export default api; 
+  getAll: (params) => apiClient.get('/notifications', { params }),
+  markAsRead: (id) => apiClient.put(`/notifications/${id}/read`),
+  markAllAsRead: () => apiClient.put('/notifications/read-all'),
+  delete: (id) => apiClient.delete(`/notifications/${id}`),
+  create: (notificationData) => apiClient.post('/notifications', notificationData),
+}; 

@@ -43,7 +43,12 @@ app.use(express.urlencoded({ extended: false }));
 // Enable CORS
 app.use(cors({
   origin: process.env.NODE_ENV === 'production' 
-    ? ['https://yourdomain.com'] 
+    ? [
+        'https://smart-timetable-substitution-manage.vercel.app',          // Main Vercel deployment URL
+        'https://smart-timetable-substitution-manage-git-main.vercel.app', // Branch preview URL pattern
+        'https://smart-timetable-substitution-manage-*.vercel.app',        // Preview deployment URL pattern
+        'https://yourdomain.com'                                          // Your custom domain if configured
+      ] 
     : ['http://localhost:3000', 'http://localhost:5173'],
   credentials: true
 }));
@@ -111,7 +116,7 @@ app.use('*', (req, res) => {
   });
 });
 
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 5001;
 
 const server = app.listen(PORT, () => {
   console.log('🚀 Server Information:');
