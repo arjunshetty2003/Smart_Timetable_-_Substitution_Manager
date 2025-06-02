@@ -12,9 +12,50 @@ pipeline {
         DOCKER_REGISTRY = 'your-registry-url'  // Replace with your registry
         IMAGE_NAME = 'timetable-manager'
         VERSION = "${BUILD_NUMBER}"
+        NODE_VERSION = '20'
+        PATH = "/usr/local/bin:${env.PATH}"
     }
 
     stages {
+        stage('Setup Prerequisites') {
+            steps {
+                script {
+                    // Install Node.js using nvm if available, otherwise try direct installation
+                    sh '''
+                        # Try to load nvm if it exists
+                        export NVM_DIR="$HOME/.nvm"
+                        [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
+                        
+                        # Check if node is installed
+                        if ! command -v node &> /dev/null; then
+                            echo "Installing Node.js..."
+                            if command -v nvm &> /dev/null; then
+                                nvm install ${NODE_VERSION}
+                                nvm use ${NODE_VERSION}
+                            else
+                                # For macOS
+                                if command -v brew &> /dev/null; then
+                                    brew install node@${NODE_VERSION}
+                                # For Ubuntu/Debian
+                                elif command -v apt-get &> /dev/null; then
+                                    curl -fsSL https://deb.nodesource.com/setup_${NODE_VERSION}.x | sudo -E bash -
+                                    sudo apt-get install -y nodejs
+                                else
+                                    echo "Unable to install Node.js. Please install it manually."
+                                    exit 1
+                                fi
+                            fi
+                        fi
+                        
+                        # Verify installations
+                        node --version
+                        npm --version
+                    '''
+                    echo '✅ Prerequisites installation complete'
+                }
+            }
+        }
+        
         stage('Checkout') {
             steps {
                 checkout scm
