@@ -1,3 +1,8 @@
+// Add additional logging at the beginning of the file
+console.log('Starting server...');
+console.log('Node version:', process.version);
+console.log('Environment:', process.env.NODE_ENV);
+
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
@@ -6,6 +11,7 @@ const connectDB = require('./config/database');
 
 // Load env vars - ensure this is at the very top
 require('dotenv').config();
+console.log('Loaded environment variables');
 
 // Validate required environment variables
 const requiredEnvVars = ['MONGO_URI', 'JWT_SECRET'];
@@ -18,22 +24,31 @@ if (missingEnvVars.length > 0) {
 }
 
 // Connect to database
-connectDB();
+console.log('Attempting to connect to MongoDB...');
+connectDB()
+  .then(() => console.log('Database connection successful'))
+  .catch(err => {
+    console.error('Database connection failed:', err);
+    process.exit(1);
+  });
 
 const app = express();
 
 // Security middleware
 app.use(helmet());
+console.log('Helmet middleware initialized');
 
 // CORS configuration
-app.use(cors({
+const corsOptions = {
   origin: process.env.NODE_ENV === 'production' 
     ? ['https://timetable-frontend.onrender.com', 'https://timetable-backend.onrender.com'] 
     : ['http://localhost:3000', 'http://localhost:5173', 'http://localhost:80'],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
-}));
+};
+console.log('CORS configuration:', corsOptions);
+app.use(cors(corsOptions));
 
 // Rate limiting
 const limiter = rateLimit({
@@ -45,27 +60,45 @@ const limiter = rateLimit({
   }
 });
 app.use('/api/', limiter);
+console.log('Rate limiter initialized');
 
 // Body parser
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: false }));
+console.log('Body parsers initialized');
 
 // Routes
-app.use('/api/auth', require('./routes/auth'));
-app.use('/api/users', require('./routes/users'));
-app.use('/api/schedules', require('./routes/schedules'));
-app.use('/api/subjects', require('./routes/subjects'));
-app.use('/api/classes', require('./routes/classes'));
-app.use('/api/substitutions', require('./routes/substitutions'));
-app.use('/api/timetables', require('./routes/timetables'));
-app.use('/api/special-classes', require('./routes/specialClasses'));
-app.use('/api/notifications', require('./routes/notifications'));
+try {
+  app.use('/api/auth', require('./routes/auth'));
+  app.use('/api/users', require('./routes/users'));
+  app.use('/api/schedules', require('./routes/schedules'));
+  app.use('/api/subjects', require('./routes/subjects'));
+  app.use('/api/classes', require('./routes/classes'));
+  app.use('/api/substitutions', require('./routes/substitutions'));
+  app.use('/api/timetables', require('./routes/timetables'));
+  app.use('/api/special-classes', require('./routes/specialClasses'));
+  app.use('/api/notifications', require('./routes/notifications'));
+  console.log('Routes initialized successfully');
+} catch (err) {
+  console.error('Failed to initialize routes:', err);
+}
+
+// Add a root route for easier testing
+app.get('/', (req, res) => {
+  res.status(200).json({ 
+    message: 'Smart Timetable API is running',
+    time: new Date().toISOString(),
+    env: process.env.NODE_ENV
+  });
+});
 
 // Health check route
 app.get('/api/health', (req, res) => {
   res.status(200).json({ 
     status: 'success', 
-    message: 'Server is running' 
+    message: 'Server is running',
+    time: new Date().toISOString(),
+    env: process.env.NODE_ENV
   });
 });
 
@@ -76,6 +109,7 @@ app.use((err, req, res, next) => {
 
   // Log to console for dev
   console.error('🔥 Error:', err);
+  console.error('Stack trace:', err.stack);
 
   // Mongoose bad ObjectId
   if (err.name === 'CastError') {
@@ -97,15 +131,17 @@ app.use((err, req, res, next) => {
 
   res.status(error.statusCode || 500).json({
     success: false,
-    message: error.message || 'Server Error'
+    message: error.message || 'Server Error',
+    stack: process.env.NODE_ENV === 'production' ? '🥞' : err.stack
   });
 });
 
 // Handle unhandled routes
 app.use('*', (req, res) => {
+  console.log(`Route not found: ${req.originalUrl}`);
   res.status(404).json({
     success: false,
-    message: 'Route not found'
+    message: `Route not found: ${req.originalUrl}`
   });
 });
 
@@ -117,11 +153,13 @@ const server = app.listen(PORT, () => {
   console.log(`   🌐 Port: ${PORT}`);
   console.log(`   🔗 URL: http://localhost:${PORT}`);
   console.log(`   🏥 Health Check: http://localhost:${PORT}/api/health`);
+  console.log(`   📂 Routes: ${app._router.stack.filter(r => r.route).map(r => r.route.path).join(', ')}`);
 });
 
 // Handle unhandled promise rejections
 process.on('unhandledRejection', (err, promise) => {
   console.log(`❌ Unhandled Rejection: ${err.message}`);
+  console.error('Stack trace:', err.stack);
   // Close server & exit process
   server.close(() => {
     process.exit(1);

@@ -11,7 +11,7 @@
     "dev": "nodemon src/server.js",
     "test": "jest --passWithNoTests",
     "test-db": "node scripts/test-db-connection.js",
-    "seed": "node src/scripts/seedDatabase.js",
+    "seed": "node scripts/seedDatabase.js",
     "build": "echo 'No build step required for Node.js backend'"
   },
   "dependencies": {
