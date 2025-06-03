@@ -41,7 +41,7 @@ console.log('Helmet middleware initialized');
 // CORS configuration
 const corsOptions = {
   origin: process.env.NODE_ENV === 'production' 
-    ? ['https://timetable-frontend.onrender.com', 'https://timetable-backend.onrender.com'] 
+    ? ['https://timetable-frontend.onrender.com', 'https://timetable-backend.onrender.com', 'https://YOUR_VERCEL_FRONTEND_URL.vercel.app'] 
     : ['http://localhost:3000', 'http://localhost:5173', 'http://localhost:80'],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
