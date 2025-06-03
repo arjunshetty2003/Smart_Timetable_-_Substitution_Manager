@@ -17,15 +17,15 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     sourcemap: true,
-    rollupOptions: {
-      output: {
-        manualChunks: {
-          vendor: ['react', 'react-dom', 'react-router-dom'],
-        },
-      },
-    },
+    // rollupOptions: {
+    //   output: {
+    //     manualChunks: {
+    //       vendor: ['react', 'react-dom', 'react-router-dom'],
+    //     },
+    //   },
+    // },
   },
-  define: {
-    'process.env.VITE_API_URL': JSON.stringify(process.env.VITE_API_URL)
-  }
+  // define: {
+  //   'process.env.VITE_API_URL': JSON.stringify(process.env.VITE_API_URL)
+  // }
 }) 
