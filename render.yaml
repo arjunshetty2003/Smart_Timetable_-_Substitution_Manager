@@ -22,6 +22,7 @@ services:
     healthCheckPath: /api/health
     
   # Frontend service
+  # This service deploys the static React frontend.
   - type: web
     name: timetable-frontend
     env: static
