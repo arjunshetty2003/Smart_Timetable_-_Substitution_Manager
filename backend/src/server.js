@@ -50,6 +50,18 @@ const corsOptions = {
 console.log('CORS configuration:', corsOptions);
 app.use(cors(corsOptions));
 
+// Health check route - IMPORTANT: Must be defined BEFORE the rate limiter
+// This ensures health checks are not rate limited
+app.get('/api/health', (req, res) => {
+  console.log('Health check requested at:', new Date().toISOString());
+  res.status(200).json({ 
+    status: 'success', 
+    message: 'Server is running',
+    time: new Date().toISOString(),
+    env: process.env.NODE_ENV
+  });
+});
+
 // Rate limiting
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
@@ -87,16 +99,6 @@ try {
 app.get('/', (req, res) => {
   res.status(200).json({ 
     message: 'Smart Timetable API is running',
-    time: new Date().toISOString(),
-    env: process.env.NODE_ENV
-  });
-});
-
-// Health check route
-app.get('/api/health', (req, res) => {
-  res.status(200).json({ 
-    status: 'success', 
-    message: 'Server is running',
     time: new Date().toISOString(),
     env: process.env.NODE_ENV
   });
