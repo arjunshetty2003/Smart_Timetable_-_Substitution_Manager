@@ -28,7 +28,10 @@ services:
     staticPublishPath: ./frontend/dist
     envVars:
       - key: VITE_API_URL
-        value: https://timetable-backend.onrender.com
+        fromService:
+          name: timetable-backend
+          type: web
+          property: host
     routes:
       - type: rewrite
         source: /*
