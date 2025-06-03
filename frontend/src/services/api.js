@@ -13,6 +13,9 @@ const getBaseURL = () => {
   return 'http://localhost:5001';
 };
 
+// Log the API URL for debugging
+console.log('API URL:', getBaseURL());
+
 // Create API client
 const apiClient = axios.create({
   baseURL: getBaseURL(),
