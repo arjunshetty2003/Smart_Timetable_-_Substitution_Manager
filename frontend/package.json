@@ -24,6 +24,10 @@
     "react-router-dom": "^6.20.1",
     "tailwind-merge": "^2.0.0"
   },
+  "engines": {
+  "node": "20.x"
+}
+,
   "devDependencies": {
     "@types/react": "^18.2.37",
     "@types/react-dom": "^18.2.15",
