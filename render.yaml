@@ -12,7 +12,7 @@ services:
       - key: PORT
         value: 5001
       - key: MONGO_URI
-        sync: false
+        value: mongodb+srv://new_user_31:us7WCnGiy20HS0wW@cluster0.ymz2b.mongodb.net/smart_timetable?retryWrites=true&w=majority&appName=Cluster0
       - key: JWT_SECRET
         generateValue: true
       - key: JWT_EXPIRE
@@ -36,17 +36,4 @@ services:
     routes:
       - type: rewrite
         source: /*
-        destination: /index.html
-
-  # MongoDB database
-  - type: pserv
-    name: timetable-mongodb
-    env: docker
-    repo: https://github.com/render-examples/mongodb.git
-    envVars:
-      - key: MONGO_INITDB_ROOT_USERNAME
-        generateValue: true
-      - key: MONGO_INITDB_ROOT_PASSWORD
-        generateValue: true
-      - key: MONGO_REPLICA_SET_KEY
-        generateValue: true 
+        destination: /index.html 

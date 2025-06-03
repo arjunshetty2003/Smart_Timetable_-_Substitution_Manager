@@ -28,7 +28,7 @@ app.use(helmet());
 // CORS configuration
 app.use(cors({
   origin: process.env.NODE_ENV === 'production' 
-    ? 'https://your-production-domain.com' 
+    ? ['https://timetable-frontend.onrender.com', 'https://timetable-backend.onrender.com'] 
     : ['http://localhost:3000', 'http://localhost:5173', 'http://localhost:80'],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
