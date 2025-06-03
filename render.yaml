@@ -4,7 +4,7 @@ services:
     name: timetable-backend
     env: node
     plan: free
-    buildCommand: cd backend && npm install && npm run build
+    buildCommand: cd backend && npm install
     startCommand: cd backend && npm start
     envVars:
       - key: NODE_ENV
@@ -12,7 +12,7 @@ services:
       - key: PORT
         value: 5001
       - key: MONGO_URI
-        value: mongodb+srv://new_user_31:us7WCnGiy20HS0wW@cluster0.ymz2b.mongodb.net/smart_timetable?retryWrites=true&w=majority&appName=Cluster0
+        sync: false
       - key: JWT_SECRET
         generateValue: true
       - key: JWT_EXPIRE
@@ -29,7 +29,7 @@ services:
     staticPublishPath: ./frontend/dist
     envVars:
       - key: VITE_API_URL
-        value: timetable-backend.onrender.com
+        value: https://timetable-backend.onrender.com
     routes:
       - type: rewrite
         source: /*
