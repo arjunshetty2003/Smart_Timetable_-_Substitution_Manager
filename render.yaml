@@ -1,0 +1,52 @@
+services:
+  # Backend API service
+  - type: web
+    name: timetable-backend
+    env: node
+    plan: free
+    buildCommand: cd backend && npm install && npm run build
+    startCommand: cd backend && npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 5001
+      - key: MONGO_URI
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_EXPIRE
+        value: 30d
+      - key: JWT_COOKIE_EXPIRE
+        value: 30
+    healthCheckPath: /api/health
+    
+  # Frontend service
+  - type: web
+    name: timetable-frontend
+    env: static
+    buildCommand: cd frontend && npm install && npm run build
+    staticPublishPath: ./frontend/dist
+    envVars:
+      - key: VITE_API_URL
+        fromService:
+          name: timetable-backend
+          type: web
+          property: url
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+
+  # MongoDB database
+  - type: pserv
+    name: timetable-mongodb
+    env: docker
+    repo: https://github.com/render-examples/mongodb.git
+    envVars:
+      - key: MONGO_INITDB_ROOT_USERNAME
+        generateValue: true
+      - key: MONGO_INITDB_ROOT_PASSWORD
+        generateValue: true
+      - key: MONGO_REPLICA_SET_KEY
+        generateValue: true 

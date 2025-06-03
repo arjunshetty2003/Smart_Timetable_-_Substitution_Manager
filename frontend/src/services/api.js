@@ -1,82 +1,95 @@
 import axios from 'axios';
 
-// In development, use relative path for API requests to leverage Nginx proxy
-// In production, use environment variable or fallback to relative path
-const API_URL = import.meta.env.VITE_API_URL || '/api';
+// Determine the API base URL based on environment
+const getBaseURL = () => {
+  // If VITE_API_URL is defined, use it
+  if (import.meta.env.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL;
+  }
+  
+  // Development fallback
+  return 'http://localhost:5001';
+};
 
-// Create an axios instance with default config
+// Create API client
 const apiClient = axios.create({
-  baseURL: API_URL,
+  baseURL: getBaseURL(),
+  withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
   },
-  withCredentials: true, // Include cookies in requests
 });
 
-// Add a request interceptor for authentication
+// Add request interceptor for authentication
 apiClient.interceptors.request.use(
   (config) => {
+    // Add auth token to headers if available
     const token = localStorage.getItem('token');
     if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+      config.headers['Authorization'] = `Bearer ${token}`;
     }
     return config;
   },
-  (error) => Promise.reject(error)
-);
-
-// Add a response interceptor for error handling
-apiClient.interceptors.response.use(
-  (response) => response,
   (error) => {
-    console.error('API Error:', error);
-    
-    // Handle session expiration
-    if (error.response && error.response.status === 401) {
-      // Clear local auth data
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      
-      // Redirect to login page if not already there
-      if (window.location.pathname !== '/login') {
-        window.location.href = '/login';
-      }
-    }
-    
     return Promise.reject(error);
   }
 );
 
-// API service methods
+// Add response interceptor for error handling
+apiClient.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    // Handle unauthorized errors
+    if (error.response?.status === 401) {
+      // Clear token and redirect to login if unauthorized
+      localStorage.removeItem('token');
+      if (window.location.pathname !== '/login') {
+        window.location.href = '/login';
+      }
+    }
+    return Promise.reject(error);
+  }
+);
+
+// API service exports
+export default apiClient;
+
+// Auth API
 export const authAPI = {
-  login: (credentials) => apiClient.post('/auth/login', credentials),
-  register: (userData) => apiClient.post('/auth/register', userData),
-  verifyToken: () => apiClient.get('/auth/verify'),
-  forgotPassword: (email) => apiClient.post('/auth/forgot-password', { email }),
-  resetPassword: (token, password) => apiClient.post('/auth/reset-password', { token, password }),
+  login: (credentials) => apiClient.post('/api/auth/login', credentials),
+  register: (userData) => apiClient.post('/api/auth/register', userData),
+  getMe: () => apiClient.get('/api/auth/me'),
+  logout: () => apiClient.get('/api/auth/logout'),
 };
 
+// Users API
 export const usersAPI = {
-  getProfile: () => apiClient.get('/users/me'),
-  updateProfile: (userData) => apiClient.put('/users/me', userData),
-  changePassword: (passwordData) => apiClient.post('/users/change-password', passwordData),
-  getAll: () => apiClient.get('/users'),
+  getAll: () => apiClient.get('/api/users'),
+  getById: (id) => apiClient.get(`/api/users/${id}`),
+  create: (userData) => apiClient.post('/api/users', userData),
+  update: (id, userData) => apiClient.put(`/api/users/${id}`, userData),
+  delete: (id) => apiClient.delete(`/api/users/${id}`),
 };
 
+// Timetables API
 export const timetablesAPI = {
-  getAll: () => apiClient.get('/timetables'),
-  getById: (id) => apiClient.get(`/timetables/${id}`),
-  create: (timetableData) => apiClient.post('/timetables', timetableData),
-  update: (id, timetableData) => apiClient.put(`/timetables/${id}`, timetableData),
-  delete: (id) => apiClient.delete(`/timetables/${id}`),
+  getAll: (params) => apiClient.get('/api/timetables', { params }),
+  getById: (id) => apiClient.get(`/api/timetables/${id}`),
+  create: (timetableData) => apiClient.post('/api/timetables', timetableData),
+  update: (id, timetableData) => apiClient.put(`/api/timetables/${id}`, timetableData),
+  delete: (id) => apiClient.delete(`/api/timetables/${id}`),
 };
 
+// Schedules API
 export const schedulesAPI = {
-  getAll: () => apiClient.get('/schedules'),
-  getById: (id) => apiClient.get(`/schedules/${id}`),
-  create: (scheduleData) => apiClient.post('/schedules', scheduleData),
-  update: (id, scheduleData) => apiClient.put(`/schedules/${id}`, scheduleData),
-  delete: (id) => apiClient.delete(`/schedules/${id}`),
+  getAll: (params) => apiClient.get('/api/schedules', { params }),
+  getById: (id) => apiClient.get(`/api/schedules/${id}`),
+  create: (scheduleData) => apiClient.post('/api/schedules', scheduleData),
+  update: (id, scheduleData) => apiClient.put(`/api/schedules/${id}`, scheduleData),
+  delete: (id) => apiClient.delete(`/api/schedules/${id}`),
+  getDashboardStats: () => apiClient.get('/api/schedules/dashboard'),
+  getFacultyDashboard: () => apiClient.get('/api/schedules/faculty/dashboard'),
+  getStudentDashboard: () => apiClient.get('/api/schedules/student/dashboard'),
 };
 
 export const subjectsAPI = {
@@ -109,5 +122,3 @@ export const specialClassesAPI = {
   update: (id, specialClassData) => apiClient.put(`/special-classes/${id}`, specialClassData),
   delete: (id) => apiClient.delete(`/special-classes/${id}`),
 };
-
-export default apiClient;

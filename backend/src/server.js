@@ -63,13 +63,9 @@ app.use('/api/notifications', require('./routes/notifications'));
 
 // Health check route
 app.get('/api/health', (req, res) => {
-  res.status(200).json({
-    success: true,
-    message: 'Server is running',
-    timestamp: new Date().toISOString(),
-    env: process.env.NODE_ENV,
-    port: process.env.PORT,
-    database: 'Connected'
+  res.status(200).json({ 
+    status: 'success', 
+    message: 'Server is running' 
   });
 });
 
