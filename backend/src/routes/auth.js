@@ -2,6 +2,7 @@ const express = require('express');
 const { body, validationResult } = require('express-validator');
 const User = require('../models/User');
 const { protect, sendTokenResponse } = require('../middleware/auth');
+const jwt = require('jsonwebtoken');
 
 const router = express.Router();
 
@@ -47,7 +48,7 @@ router.post('/register', [
       availability: availability || []
     });
 
-    sendTokenResponse(user, 201, res);
+    sendTokenResponse(user, 201, req, res);
   } catch (error) {
     console.error('Registration error:', error);
     res.status(500).json({
@@ -103,9 +104,90 @@ router.post('/login', [
       });
     }
 
-    sendTokenResponse(user, 200, res);
+    sendTokenResponse(user, 200, req, res);
   } catch (error) {
     console.error('Login error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error during login'
+    });
+  }
+});
+
+// @desc    Debug login endpoint that doesn't use cookies
+// @route   POST /api/auth/debug-login
+// @access  Public
+router.post('/debug-login', [
+  body('email').isEmail().withMessage('Please include a valid email'),
+  body('password').exists().withMessage('Password is required')
+], async (req, res) => {
+  try {
+    console.log('Debug login attempt with:', req.body.email);
+    
+    // Check for validation errors
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: errors.array()
+      });
+    }
+
+    const { email, password } = req.body;
+
+    // Check for user
+    const user = await User.findOne({ email }).select('+passwordHash');
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid credentials'
+      });
+    }
+
+    // Check if user is active
+    if (!user.isActive) {
+      return res.status(401).json({
+        success: false,
+        message: 'Account is deactivated'
+      });
+    }
+
+    // Check if password matches
+    const isMatch = await user.matchPassword(password);
+    if (!isMatch) {
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid credentials'
+      });
+    }
+
+    // Generate token without setting cookies
+    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
+      expiresIn: process.env.JWT_EXPIRE,
+    });
+
+    // Set CORS headers explicitly
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+
+    // Return success response
+    res.status(200).json({
+      success: true,
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        department: user.department,
+        availability: user.availability,
+        isActive: user.isActive
+      }
+    });
+  } catch (error) {
+    console.error('Debug login error:', error);
     res.status(500).json({
       success: false,
       message: 'Server error during login'
@@ -245,7 +327,7 @@ router.put('/password', protect, [
     user.passwordHash = newPassword;
     await user.save();
 
-    sendTokenResponse(user, 200, res);
+    sendTokenResponse(user, 200, req, res);
   } catch (error) {
     console.error('Password change error:', error);
     res.status(500).json({

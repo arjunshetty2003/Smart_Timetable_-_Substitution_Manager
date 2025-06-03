@@ -1,35 +1,34 @@
-FROM node:20 as build
+# Build stage
+FROM node:20.18.1-alpine as build
 
 WORKDIR /app
 
-COPY package*.json ./
-RUN npm install
+# Copy package files
+COPY package.json package-lock.json ./
 
-# Install Vite globally (optional, useful for docker CMD)
-RUN npm install -g vite
+# Install dependencies
+RUN npm ci
 
+# Copy source code
 COPY . .
 
-# Build the app for production
+# Build the app
 RUN npm run build
 
-# Production stage
-FROM node:20-slim
+# Stage 2: Serve with Nginx
+FROM nginx:stable-alpine
 
-WORKDIR /app
+# Copy built files from the build stage
+COPY --from=build /app/dist /usr/share/nginx/html
 
-# Install serve to serve the static files
-RUN npm install -g serve
+# Copy Nginx configuration
+COPY nginx.conf /etc/nginx/conf.d/default.conf
 
-# Copy build files from the build stage
-COPY --from=build /app/dist /app/dist
+# Expose port 80
+EXPOSE 80
 
-# Use port 3000 for frontend
-EXPOSE 3000
-
-# Add healthcheck
+# Health check
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-  CMD wget --no-verbose --tries=1 --spider http://localhost:3000/ || exit 1
+  CMD curl --fail http://localhost/api/health || exit 1
 
-# Start the server
-CMD ["serve", "-s", "dist", "-l", "3000"]
+CMD ["nginx", "-g", "daemon off;"]

@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Resetting Application</title>
+    <style>
+        body { font-family: Arial; padding: 20px; text-align: center; }
+        .loader {
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #3498db;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        #message { margin: 20px; }
+    </style>
+</head>
+<body>
+    <h1>Resetting Application</h1>
+    <p>This page will clear your browser cache and localStorage before redirecting you to the login page.</p>
+    
+    <div class="loader"></div>
+    <div id="message">Resetting application...</div>
+    
+    <script>
+        // Clear localStorage
+        localStorage.clear();
+        
+        // Attempt to clear application cache if supported
+        if ('caches' in window) {
+            caches.keys().then(function(names) {
+                for (let name of names) caches.delete(name);
+            });
+        }
+        
+        // Redirect after a short delay
+        setTimeout(() => {
+            document.getElementById('message').innerText = 'Reset complete! Redirecting...';
+            setTimeout(() => {
+                window.location.href = '/login';
+            }, 1000);
+        }, 2000);
+    </script>
+</body>
+</html> 

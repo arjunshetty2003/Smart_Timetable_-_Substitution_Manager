@@ -3,12 +3,12 @@ const bcrypt = require('bcryptjs');
 require('dotenv').config();
 
 // Import models
-const User = require('../models/User');
-const Subject = require('../models/Subject');
-const Class = require('../models/Class');
-const Schedule = require('../models/Schedule');
-const Substitution = require('../models/Substitution');
-const Timetable = require('../models/Timetable');
+const User = require('../src/models/User');
+const Subject = require('../src/models/Subject');
+const Class = require('../src/models/Class');
+const Schedule = require('../src/models/Schedule');
+const Substitution = require('../src/models/Substitution');
+const Timetable = require('../src/models/Timetable');
 
 // Connect to MongoDB
 const connectDB = async () => {

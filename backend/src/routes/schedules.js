@@ -2,7 +2,7 @@ const express = require('express');
 const { body, validationResult } = require('express-validator');
 const Schedule = require('../models/Schedule');
 const User = require('../models/User');
-const { protect } = require('../middleware/auth');
+const { protect, authorize } = require('../middleware/auth');
 const router = express.Router();
 const Substitution = require('../models/Substitution');
 const Subject = require('../models/Subject');
@@ -60,8 +60,9 @@ router.get('/', protect, async (req, res) => {
 
     try {
       const schedules = await Schedule.find(filter)
-        .populate('facultyId', 'name email department')
-        .populate('substituteFacultyId', 'name email department')
+        .populate('subject')
+        .populate('class')
+        .populate('faculty')
         .sort({ date: 1, startTime: 1 })
         .skip(skip)
         .limit(parseInt(limit));
@@ -566,146 +567,22 @@ router.post('/:id/substitute', [
 });
 
 // @route   GET /api/schedules/student/dashboard
-// @desc    Get student dashboard with today's classes
-// @access  Private/Student
-router.get('/student/dashboard', protect, async (req, res) => {
+// @desc    Get student's dashboard schedule
+// @access  Private (Student)
+router.get('/student/dashboard', protect, authorize('student'), async (req, res) => {
   try {
-    // Verify user is a student
-    if (req.user.role !== 'student') {
-      return res.status(403).json({
-        success: false,
-        message: 'Access denied. Student only.'
-      });
-    }
-
-    const studentId = req.user._id;
-    const studentDepartment = req.user.department;
-    const today = new Date().toLocaleDateString('en-US', { weekday: 'long' });
-    
-    // Find classes for this student's department
-    const classes = await Class.find({ department: studentDepartment });
-    
-    if (!classes || classes.length === 0) {
-      return res.status(200).json({
-        success: true,
-        data: {
-          todayClasses: [],
-          upcomingClass: null,
-          stats: {
-            totalClassesToday: 0,
-            completedClasses: 0,
-            upcomingClasses: 0
-          }
-        }
-      });
-    }
-    
-    const classIds = classes.map(cls => cls._id);
-    
-    // Get today's timetable for these classes
-    const timetables = await Timetable.find({ 
-      classId: { $in: classIds },
-      day: today
-    })
-    .populate('classId', 'className courseCode department semester')
-    .populate('timeSlots.facultyId', 'name email department')
-    .populate('timeSlots.subjectId', 'subjectName subjectCode credits')
-    .sort({ 'timeSlots.startTime': 1 });
-    
-    // Flatten the timetables to get all classes
-    let todayClasses = [];
-    timetables.forEach(timetable => {
-      timetable.timeSlots.forEach(slot => {
-        todayClasses.push({
-          id: slot._id,
-          subject: slot.subjectId.subjectName,
-          subjectCode: slot.subjectId.subjectCode,
-          faculty: slot.facultyId.name,
-          startTime: slot.startTime,
-          endTime: slot.endTime,
-          classroom: slot.classroom,
-          className: timetable.classId.className
-        });
-      });
-    });
-    
-    // Sort by start time
-    todayClasses.sort((a, b) => {
-      return a.startTime.localeCompare(b.startTime);
-    });
-    
-    // Check for substitutions
-    const todayDate = new Date();
-    todayDate.setHours(0, 0, 0, 0);
-    const endDate = new Date();
-    endDate.setHours(23, 59, 59, 999);
-    
-    const substitutions = await Substitution.find({
-      date: { $gte: todayDate, $lte: endDate },
-      status: { $in: ['approved', 'pending'] }
-    })
-    .populate('originalFacultyId', 'name email')
-    .populate('substituteFacultyId', 'name email')
-    .populate('subjectId', 'subjectName subjectCode');
-    
-    // Update classes with substitution information
-    todayClasses = todayClasses.map(cls => {
-      const matchingSubstitution = substitutions.find(sub => 
-        sub.subjectId.subjectCode === cls.subjectCode &&
-        sub.originalFacultyId.name === cls.faculty
-      );
-      
-      if (matchingSubstitution) {
-        return {
-          ...cls,
-          hasSubstitution: true,
-          substituteFaculty: matchingSubstitution.substituteFacultyId?.name || 'Pending',
-          substitutionStatus: matchingSubstitution.status
-        };
-      }
-      
-      return {
-        ...cls,
-        hasSubstitution: false
-      };
-    });
-    
-    // Calculate current and upcoming classes
-    const currentTime = new Date().toLocaleTimeString('en-US', { 
-      hour12: false, 
-      hour: '2-digit', 
-      minute: '2-digit' 
-    });
-    
-    const completedClasses = todayClasses.filter(cls => cls.endTime < currentTime);
-    const upcomingClasses = todayClasses.filter(cls => cls.startTime > currentTime);
-    const currentClasses = todayClasses.filter(cls => 
-      cls.startTime <= currentTime && cls.endTime >= currentTime
-    );
-    
-    // Find the next upcoming class
-    const nextClass = upcomingClasses.length > 0 ? upcomingClasses[0] : null;
-    
+    // TODO: Implement dashboard schedule retrieval logic
     res.status(200).json({
       success: true,
       data: {
-        todayClasses,
-        currentClass: currentClasses.length > 0 ? currentClasses[0] : null,
-        upcomingClass: nextClass,
-        stats: {
-          totalClassesToday: todayClasses.length,
-          completedClasses: completedClasses.length,
-          currentClasses: currentClasses.length,
-          upcomingClasses: upcomingClasses.length
-        }
+        todayClasses: [],
+        upcomingClasses: []
       }
     });
   } catch (error) {
-    console.error('Student dashboard error:', error);
     res.status(500).json({
       success: false,
-      message: 'Failed to fetch student dashboard data',
-      error: error.message
+      message: 'Server Error'
     });
   }
 });

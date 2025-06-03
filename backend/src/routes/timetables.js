@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const Timetable = require('../models/Timetable');
-const { protect } = require('../middleware/auth');
+const { protect, authorize } = require('../middleware/auth');
 const Class = require('../models/Class');
 const Substitution = require('../models/Substitution');
 
@@ -467,216 +467,38 @@ router.delete('/:id/timeslots/:slotId', protect, async (req, res) => {
   }
 });
 
-// @desc    Get student timetable (daily/weekly)
 // @route   GET /api/timetables/student
+// @desc    Get student's timetable
 // @access  Private (Student)
-router.get('/student', protect, async (req, res) => {
+router.get('/student', protect, authorize('student'), async (req, res) => {
   try {
-    // Verify the user is a student
-    if (req.user.role !== 'student') {
-      return res.status(403).json({
-        success: false,
-        message: 'Access denied. Student only.'
-      });
-    }
-
-    const { day, week } = req.query;
-    
-    // Get the student's department from their profile
-    const studentDepartment = req.user.department;
-    
-    // Find classes in the student's department
-    const classes = await Class.find({ department: studentDepartment });
-    
-    if (!classes || classes.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: 'No classes found for your department'
-      });
-    }
-    
-    const classIds = classes.map(cls => cls._id);
-    
-    // Build query based on whether looking for specific day or week
-    const query = { classId: { $in: classIds } };
-    if (day) {
-      query.day = day;
-    }
-    
-    // Get timetables for the student's classes
-    const timetables = await Timetable.find(query)
-      .populate('classId', 'className courseCode department semester')
-      .populate('timeSlots.facultyId', 'name email department')
-      .populate('timeSlots.subjectId', 'subjectName subjectCode credits')
-      .sort({ day: 1, 'timeSlots.startTime': 1 });
-    
-    // Check for substitutions that affect these classes
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    
-    const endDate = new Date();
-    if (week === 'true') {
-      // If week view, set end date to 7 days from now
-      endDate.setDate(endDate.getDate() + 7);
-    } else {
-      // Otherwise just end of today
-      endDate.setHours(23, 59, 59, 999);
-    }
-    
-    // Get all active substitutions for these classes
-    const substitutions = await Substitution.find({
-      date: { $gte: today, $lte: endDate },
-      status: { $in: ['approved', 'pending'] }
-    })
-    .populate('originalFacultyId', 'name email')
-    .populate('substituteFacultyId', 'name email')
-    .populate('subjectId', 'subjectName subjectCode');
-    
-    // Format the response with substitution information
-    const formattedTimetable = timetables.map(timetable => {
-      const formattedTimeSlots = timetable.timeSlots.map(slot => {
-        // Check if there's a substitution for this slot
-        const matchingSubstitution = substitutions.find(sub => 
-          sub.subjectId._id.toString() === slot.subjectId._id.toString() &&
-          sub.originalFacultyId._id.toString() === slot.facultyId._id.toString() &&
-          sub.classroom === slot.classroom
-        );
-        
-        return {
-          _id: slot._id,
-          startTime: slot.startTime,
-          endTime: slot.endTime,
-          subject: slot.subjectId.subjectName,
-          subjectCode: slot.subjectId.subjectCode,
-          faculty: matchingSubstitution ? 
-            (matchingSubstitution.substituteFacultyId ? matchingSubstitution.substituteFacultyId.name : 'Pending Substitution') : 
-            slot.facultyId.name,
-          classroom: slot.classroom,
-          hasSubstitution: !!matchingSubstitution,
-          substitutionStatus: matchingSubstitution ? matchingSubstitution.status : null
-        };
-      });
-      
-      return {
-        _id: timetable._id,
-        day: timetable.day,
-        className: timetable.classId.className,
-        courseCode: timetable.classId.courseCode,
-        timeSlots: formattedTimeSlots
-      };
-    });
-    
+    // TODO: Implement timetable retrieval logic
     res.status(200).json({
       success: true,
-      data: formattedTimetable
+      data: []
     });
   } catch (error) {
-    console.error('Get student timetable error:', error);
     res.status(500).json({
       success: false,
-      message: 'Failed to fetch student timetable',
-      error: error.message
+      message: 'Server Error'
     });
   }
 });
 
-// @desc    Get class details for a specific time slot
 // @route   GET /api/timetables/class-details/:slotId
+// @desc    Get class details
 // @access  Private (Student)
-router.get('/class-details/:slotId', protect, async (req, res) => {
+router.get('/class-details/:slotId', protect, authorize('student'), async (req, res) => {
   try {
-    // Verify the user is a student
-    if (req.user.role !== 'student') {
-      return res.status(403).json({
-        success: false,
-        message: 'Access denied. Student only.'
-      });
-    }
-
-    const { slotId } = req.params;
-    
-    // Find the timetable containing this slot
-    const timetable = await Timetable.findOne({ 'timeSlots._id': slotId })
-      .populate('classId', 'className courseCode department semester')
-      .populate('timeSlots.facultyId', 'name email department')
-      .populate('timeSlots.subjectId', 'subjectName subjectCode credits');
-    
-    if (!timetable) {
-      return res.status(404).json({
-        success: false,
-        message: 'Class details not found'
-      });
-    }
-    
-    // Find the specific time slot
-    const timeSlot = timetable.timeSlots.find(slot => slot._id.toString() === slotId);
-    
-    if (!timeSlot) {
-      return res.status(404).json({
-        success: false,
-        message: 'Time slot not found'
-      });
-    }
-    
-    // Check for any substitutions for this class
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    
-    const substitution = await Substitution.findOne({
-      date: { $gte: today },
-      subjectId: timeSlot.subjectId._id,
-      originalFacultyId: timeSlot.facultyId._id,
-      classroom: timeSlot.classroom,
-      status: { $in: ['approved', 'pending'] }
-    })
-    .populate('originalFacultyId', 'name email')
-    .populate('substituteFacultyId', 'name email')
-    .populate('subjectId', 'subjectName subjectCode');
-    
-    // Format the response
-    const classDetails = {
-      subject: {
-        name: timeSlot.subjectId.subjectName,
-        code: timeSlot.subjectId.subjectCode,
-        credits: timeSlot.subjectId.credits
-      },
-      faculty: {
-        name: timeSlot.facultyId.name,
-        email: timeSlot.facultyId.email,
-        department: timeSlot.facultyId.department
-      },
-      class: {
-        name: timetable.classId.className,
-        code: timetable.classId.courseCode,
-        department: timetable.classId.department,
-        semester: timetable.classId.semester
-      },
-      schedule: {
-        day: timetable.day,
-        startTime: timeSlot.startTime,
-        endTime: timeSlot.endTime,
-        classroom: timeSlot.classroom
-      },
-      substitution: substitution ? {
-        status: substitution.status,
-        reason: substitution.reason,
-        substituteFaculty: substitution.substituteFacultyId ? {
-          name: substitution.substituteFacultyId.name,
-          email: substitution.substituteFacultyId.email
-        } : null
-      } : null
-    };
-    
+    // TODO: Implement class details retrieval logic
     res.status(200).json({
       success: true,
-      data: classDetails
+      data: {}
     });
   } catch (error) {
-    console.error('Get class details error:', error);
     res.status(500).json({
       success: false,
-      message: 'Failed to fetch class details',
-      error: error.message
+      message: 'Server Error'
     });
   }
 });

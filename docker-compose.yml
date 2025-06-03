@@ -6,22 +6,11 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
     ports:
-      - "3000:3000"
-    environment:
-      - VITE_API_URL=http://localhost:5001
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
+      - "3000:80"
     depends_on:
       - backend
     networks:
       - app-network
-    healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
-      start_period: 10s
 
   backend:
     build:
@@ -32,38 +21,14 @@ services:
     environment:
       - NODE_ENV=development
       - PORT=5001
-      - MONGO_URI=mongodb://admin:password@mongodb:27017/timetable_db?authSource=admin
-      - JWT_SECRET=local_development_jwt_secret
-    volumes:
-      - ./backend:/app
-      - /app/node_modules
-    depends_on:
-      mongodb:
-        condition: service_healthy
+      - MONGO_URI=mongodb+srv://new_user_31:us7WCnGiy20HS0wW@cluster0.ymz2b.mongodb.net/smart_timetable?retryWrites=true&w=majority&appName=Cluster0
+      - JWT_SECRET=smart_timetable_jwt_secret_key_2024_secure_token
+      - JWT_EXPIRE=30d
+      - JWT_COOKIE_EXPIRE=30
     networks:
       - app-network
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:5001/api/health"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
-      start_period: 10s
-
-  mongodb:
-    image: mongo:6.0
-    container_name: mongodb
-    ports:
-      - "27017:27017"
-    environment:
-      - MONGO_INITDB_ROOT_USERNAME=admin
-      - MONGO_INITDB_ROOT_PASSWORD=password
-      - MONGO_INITDB_DATABASE=timetable_db
-    volumes:
-      - mongodb_data:/data/db
-    networks:
-      - app-network
-    healthcheck:
-      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
       interval: 30s
       timeout: 5s
       retries: 3

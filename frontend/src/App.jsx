@@ -15,6 +15,7 @@ import ClassManagement from './pages/admin/ClassManagement';
 import SubstitutionManagement from './pages/admin/SubstitutionManagement';
 import TimetableManagement from './pages/admin/TimetableManagement';
 import SchedulePage from './pages/SchedulePage';
+import MyTimetablePage from './pages/student/MyTimetablePage';
 
 // Faculty pages
 import FacultyOverview from './pages/faculty/FacultyOverview';
@@ -197,6 +198,17 @@ function App() {
             <ProtectedRoute allowedRoles={['student']}>
               <DashboardLayout>
                 <SpecialClasses />
+              </DashboardLayout>
+            </ProtectedRoute>
+          } 
+        />
+
+        <Route 
+          path="/student/timetable" 
+          element={
+            <ProtectedRoute allowedRoles={['student']}>
+              <DashboardLayout>
+                <MyTimetablePage />
               </DashboardLayout>
             </ProtectedRoute>
           } 

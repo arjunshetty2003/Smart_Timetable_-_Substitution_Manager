@@ -1,8 +1,6 @@
 import axios from 'axios';
 
-const API_URL = process.env.NODE_ENV === 'production' 
-  ? 'https://your-api-domain.com/api' 
-  : 'http://localhost:3001/api';
+const API_URL = '/api';
 
 // Create axios instance with base configuration
 const api = axios.create({
@@ -10,6 +8,7 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+  withCredentials: true,
 });
 
 // Add token to requests
@@ -22,17 +21,18 @@ api.interceptors.request.use(
     return config;
   },
   (error) => {
+    console.error('Auth API request error:', error);
     return Promise.reject(error);
   }
 );
 
-// Handle responses (no auto-redirect here to avoid conflicts with main API interceptor)
+// Handle responses
 api.interceptors.response.use(
   (response) => {
     return response;
   },
   (error) => {
-    // Let the main API interceptor handle auth errors
+    console.error('Auth API response error:', error);
     return Promise.reject(error);
   }
 );

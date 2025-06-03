@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, Clock, MapPin, User, Filter } from 'lucide-react';
+import { Calendar, Clock, MapPin, User, Filter, AlertCircle } from 'lucide-react';
 import { timetablesAPI } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -29,10 +29,14 @@ const SchedulePage = () => {
       };
       
       const response = await timetablesAPI.getAll(params);
-      if (response.data.success) {
+      
+      // Check if the response has data, even if success is false
+      if (response.data && (response.data.success || response.data.data)) {
         setSchedules(response.data.data || []);
       } else {
-        setError('Failed to fetch timetables');
+        // Fallback to empty array if no data
+        setSchedules([]);
+        setError('No schedule data available for the selected date');
       }
     } catch (err) {
       console.error('Schedule fetch error:', err);
@@ -43,6 +47,8 @@ const SchedulePage = () => {
       } else {
         setError(err.response?.data?.message || 'Failed to fetch schedules');
       }
+      // Set empty schedules array on error
+      setSchedules([]);
     } finally {
       setLoading(false);
     }
@@ -73,13 +79,13 @@ const SchedulePage = () => {
 
   if (loading) {
     return (
-      <div className="space-y-6">
-        <div className="bg-white rounded-lg shadow-sm border p-6">
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Loading Schedule...</h2>
+      <div className="p-6 space-y-6">
+        <div className="bg-white p-6 rounded-lg shadow-sm border">
+          <h2 className="text-2xl font-bold text-gray-900 mb-4">Schedule</h2>
           <div className="animate-pulse space-y-4">
-            <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+            <div className="h-10 bg-gray-200 rounded"></div>
             <div className="space-y-2">
-              {[1,2,3,4,5].map(i => (
+              {[1,2,3,4].map(i => (
                 <div key={i} className="h-20 bg-gray-200 rounded"></div>
               ))}
             </div>
@@ -90,163 +96,113 @@ const SchedulePage = () => {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="bg-white rounded-lg shadow-sm border p-6">
-        <div className="flex justify-between items-center mb-4">
+    <div className="p-6 space-y-6">
+      <div className="bg-white p-6 rounded-lg shadow-sm border">
+        <h2 className="text-2xl font-bold text-gray-900 mb-4">Daily Schedule</h2>
+        <p className="text-gray-600 mb-6">View today's classes and any special events or substitutions</p>
+        
+        <div className="flex flex-wrap gap-4 mb-6">
           <div>
-            <h2 className="text-2xl font-bold text-gray-900">Schedule</h2>
-            <p className="text-gray-600">View and manage class schedules</p>
-          </div>
-        </div>
-
-        {/* Filters - Only show for non-student users */}
-        {user?.role !== 'student' && (
-        <div className="flex flex-col sm:flex-row gap-4">
-          <div className="flex items-center space-x-2">
-            <Calendar className="h-4 w-4 text-gray-400" />
             <input
               type="date"
               value={selectedDate}
               onChange={(e) => setSelectedDate(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
           </div>
-          <div className="flex items-center space-x-2">
-            <Filter className="h-4 w-4 text-gray-400" />
+          <div>
             <select
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
               <option value="all">All Status</option>
               <option value="active">Active</option>
               <option value="cancelled">Cancelled</option>
               <option value="substituted">Substituted</option>
-              <option value="special">Special</option>
             </select>
           </div>
         </div>
-        )}
-      </div>
 
-      {/* Error Display */}
-      {error && (
-        <div className="bg-white rounded-lg shadow-sm border">
-          <div className="p-6">
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-              <div className="flex items-start">
-                <div className="flex-shrink-0">
-                  <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                  </svg>
-                </div>
-                <div className="ml-3">
-                  <h3 className="text-sm font-medium text-red-800">Failed to fetch schedules</h3>
-                  <p className="text-sm text-red-700 mt-1">{error}</p>
-                  <button 
-                    onClick={fetchSchedules}
-                    className="mt-2 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm transition-colors"
-                  >
-                    Retry
-                  </button>
-                </div>
+        {error ? (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+            <div className="flex items-start">
+              <AlertCircle className="h-5 w-5 text-red-600 mt-0.5" />
+              <div className="ml-3">
+                <h3 className="text-sm font-medium text-red-800">Failed to fetch schedules</h3>
+                <p className="text-sm text-red-700 mt-1">{error}</p>
+                <button 
+                  onClick={fetchSchedules}
+                  className="mt-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm transition-colors"
+                >
+                  Retry
+                </button>
               </div>
             </div>
           </div>
-        </div>
-      )}
-
-      {/* Schedule List */}
-      {!error && (
-        <div className="bg-white rounded-lg shadow-sm border">
-          <div className="px-6 py-4 border-b border-gray-200">
-            <h3 className="text-lg font-medium text-gray-900">
-              Classes for {new Date(selectedDate).toLocaleDateString('en-US', { 
-                weekday: 'long', 
-                year: 'numeric', 
-                month: 'long', 
-                day: 'numeric' 
-              })}
-            </h3>
+        ) : schedules.length === 0 ? (
+          <div className="text-center py-12 bg-gray-50 rounded-lg">
+            <Calendar className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-gray-800">No Schedules Found</h3>
+            <p className="text-gray-600 mt-2">There are no schedules for the selected date.</p>
           </div>
-
-          {schedules.length === 0 ? (
-            <div className="text-center py-12">
-              <Calendar className="mx-auto h-12 w-12 text-gray-400" />
-              <h3 className="mt-2 text-sm font-medium text-gray-900">No classes scheduled</h3>
-              <p className="mt-1 text-sm text-gray-500">
-                There are no classes scheduled for the selected date and filters.
-              </p>
-            </div>
-          ) : (
-            <div className="divide-y divide-gray-200">
-              {schedules.map((schedule) => (
-                <div key={schedule._id} className="p-6 hover:bg-gray-50">
-                  <div className="flex items-center justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center space-x-4">
-                        <div className="flex-shrink-0">
-                          <div className="h-10 w-10 rounded-lg bg-blue-100 flex items-center justify-center">
-                            <Clock className="h-5 w-5 text-blue-600" />
-                          </div>
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center space-x-2">
-                            <h4 className="text-lg font-medium text-gray-900">
-                              {schedule.subjectId?.subjectName || 'Subject'}
-                            </h4>
-                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800`}>
-                              Active
-                            </span>
-                          </div>
-                          <p className="text-sm text-gray-600 mt-1">
-                            Class: {schedule.classId?.className || 'Class'}
-                          </p>
-                          <div className="flex items-center space-x-4 mt-2 text-sm text-gray-500">
-                            <div className="flex items-center">
-                              <Clock className="h-4 w-4 mr-1" />
-                              {formatTime(schedule.startTime)} - {formatTime(schedule.endTime)}
-                            </div>
-                            <div className="flex items-center">
-                              <MapPin className="h-4 w-4 mr-1" />
-                              {schedule.room}
-                            </div>
-                            <div className="flex items-center">
-                              <User className="h-4 w-4 mr-1" />
-                              {schedule.facultyId?.name || 'TBA'}
-                            </div>
-                          </div>
-                          {schedule.notes && (
-                            <p className="text-sm text-gray-600 mt-2">
-                              Note: {schedule.notes}
-                            </p>
-                          )}
-                          {schedule.substituteFacultyId && (
-                            <p className="text-sm text-orange-600 mt-2">
-                              Substitute: {schedule.substituteFacultyId.name}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                    {user?.role === 'admin' && (
-                      <div className="flex space-x-2">
-                        <button className="btn-secondary text-sm">
-                          Edit
-                        </button>
-                        <button className="btn-secondary text-sm text-red-600 hover:text-red-700">
-                          Cancel
-                        </button>
-                      </div>
-                    )}
+        ) : (
+          <div className="space-y-4">
+            {schedules.map((schedule, index) => (
+              <div
+                key={index}
+                className={`p-4 rounded-lg border ${
+                  schedule.status === 'cancelled' ? 'bg-red-50 border-red-200' : 
+                  schedule.status === 'substituted' ? 'bg-yellow-50 border-yellow-200' : 
+                  'bg-green-50 border-green-200'
+                }`}
+              >
+                <div className="flex flex-wrap gap-4 justify-between">
+                  <div>
+                    <h3 className="font-medium text-gray-900">
+                      {schedule.subject?.subjectName || schedule.subjectId?.subjectName || 'Unknown Subject'}
+                    </h3>
+                    <p className="text-sm text-gray-600">
+                      {(schedule.subject?.subjectCode && `${schedule.subject.subjectCode} - `) || 
+                       (schedule.subjectId?.subjectCode && `${schedule.subjectId.subjectCode} - `)}
+                      {schedule.class?.name || schedule.classId?.name || schedule.classId?.className || 'Unknown Class'}
+                    </p>
+                  </div>
+                  <div className="flex items-center">
+                    <Clock className="h-4 w-4 text-gray-500 mr-1" />
+                    <span className="text-sm text-gray-600">
+                      {schedule.startTime} - {schedule.endTime}
+                    </span>
                   </div>
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
+                <div className="mt-3 flex flex-wrap gap-4">
+                  <div className="flex items-center">
+                    <User className="h-4 w-4 text-gray-500 mr-1" />
+                    <span className="text-sm text-gray-600">
+                      {schedule.faculty?.name || schedule.facultyId?.name || 'No Faculty Assigned'}
+                    </span>
+                  </div>
+                  <div className="flex items-center">
+                    <MapPin className="h-4 w-4 text-gray-500 mr-1" />
+                    <span className="text-sm text-gray-600">
+                      {schedule.room || schedule.classroom || 'No Room Assigned'}
+                    </span>
+                  </div>
+                  <div>
+                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                      schedule.status === 'cancelled' ? 'bg-red-100 text-red-800' : 
+                      schedule.status === 'substituted' ? 'bg-yellow-100 text-yellow-800' : 
+                      'bg-green-100 text-green-800'
+                    }`}>
+                      {schedule.status || 'Active'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 };

@@ -19,8 +19,8 @@ COPY backend/ ./
 FROM node:18-alpine
 WORKDIR /app
 
-# Install MongoDB client tools
-RUN apk add --no-cache mongodb-tools
+# Install required tools
+RUN apk add --no-cache mongodb-tools curl
 
 # Create app structure
 COPY --from=backend-build /app/backend ./backend
@@ -50,6 +50,10 @@ ENV FRONTEND_PORT=3000
 
 # Set working directory to backend
 WORKDIR /app/backend
+
+# Add healthcheck
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+  CMD curl --fail http://localhost:5001/api/health || exit 1
 
 # Start the application
 ENTRYPOINT ["docker-entrypoint.sh"] 

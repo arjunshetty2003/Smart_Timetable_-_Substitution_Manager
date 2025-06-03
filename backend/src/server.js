@@ -25,6 +25,16 @@ const app = express();
 // Security middleware
 app.use(helmet());
 
+// CORS configuration
+app.use(cors({
+  origin: process.env.NODE_ENV === 'production' 
+    ? 'https://your-production-domain.com' 
+    : ['http://localhost:3000', 'http://localhost:5173', 'http://localhost:80'],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
+
 // Rate limiting
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
@@ -39,19 +49,6 @@ app.use('/api/', limiter);
 // Body parser
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: false }));
-
-// Enable CORS
-app.use(cors({
-  origin: process.env.NODE_ENV === 'production' 
-    ? [
-        'https://smart-timetable-substitution-manage.vercel.app',          // Main Vercel deployment URL
-        'https://smart-timetable-substitution-manage-git-main.vercel.app', // Branch preview URL pattern
-        'https://smart-timetable-substitution-manage-*.vercel.app',        // Preview deployment URL pattern
-        'https://yourdomain.com'                                          // Your custom domain if configured
-      ] 
-    : ['http://localhost:3000', 'http://localhost:5173'],
-  credentials: true
-}));
 
 // Routes
 app.use('/api/auth', require('./routes/auth'));

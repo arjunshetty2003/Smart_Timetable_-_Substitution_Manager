@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Users, Plus, Edit, Trash2, Search, Filter, UserPlus, Save, X } from 'lucide-react';
-import api from '../../services/api';
+import { usersAPI } from '../../services/api';
 
 const UserManagement = () => {
   const [users, setUsers] = useState([]);
@@ -28,7 +28,7 @@ const UserManagement = () => {
   const fetchUsers = async () => {
     try {
       setLoading(true);
-      const response = await api.get('/users');
+      const response = await usersAPI.getAll();
       if (response.data.success) {
         setUsers(response.data.users);
       }
@@ -43,7 +43,7 @@ const UserManagement = () => {
   const handleCreate = async (e) => {
     e.preventDefault();
     try {
-      const response = await api.post('/users', formData);
+      const response = await usersAPI.create(formData);
       if (response.data.success) {
         setUsers([...users, response.data.user]);
         setShowCreateModal(false);
@@ -61,7 +61,7 @@ const UserManagement = () => {
       const updateData = { ...formData };
       if (!updateData.password) delete updateData.password; // Don't send empty password
       
-      const response = await api.put(`/users/${selectedUser._id}`, updateData);
+      const response = await usersAPI.update(selectedUser._id, updateData);
       if (response.data.success) {
         setUsers(users.map(user => 
           user._id === selectedUser._id ? response.data.user : user
@@ -78,7 +78,7 @@ const UserManagement = () => {
 
   const handleDelete = async () => {
     try {
-      await api.delete(`/users/${selectedUser._id}`);
+      await usersAPI.delete(selectedUser._id);
       setUsers(users.filter(user => user._id !== selectedUser._id));
       setShowDeleteModal(false);
       setSelectedUser(null);
